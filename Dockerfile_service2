@@ -1,0 +1,5 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:2.1 AS build
+COPY . /app
+EXPOSE 5050
+WORKDIR /app/sample/WebApiSample
+ENTRYPOINT ["dotnet", "run", "--urls", "http://0.0.0.0:5050"]

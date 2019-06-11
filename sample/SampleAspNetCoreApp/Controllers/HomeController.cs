@@ -68,7 +68,7 @@ namespace SampleAspNetCoreApp.Controllers
 
 			try
 			{
-				var retVal = await httpClient.GetAsync("http://localhost:5050/api/values");
+				var retVal = await httpClient.GetAsync("http://service2:5050/api/values");
 
 				var resultInStr = await retVal.Content.ReadAsStringAsync();
 				var list = JsonConvert.DeserializeObject<List<string>>(resultInStr);
