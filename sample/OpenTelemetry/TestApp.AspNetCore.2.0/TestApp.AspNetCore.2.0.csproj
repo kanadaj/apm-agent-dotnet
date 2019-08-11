@@ -12,6 +12,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.All" />
+    <PackageReference Include="OpenTelemetry" Version="0.2.0-alpha.5" />
+    <PackageReference Include="OpenTelemetry.Abstractions" Version="0.2.0-alpha.5" />
+    <PackageReference Include="OpenTelemetry.Collector.AspNetCore" Version="0.2.0-alpha.5" />
+    <PackageReference Include="OpenTelemetry.Collector.Dependencies" Version="0.2.0-alpha.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,11 +23,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\OpenTelemetry.Abstractions\OpenTelemetry.Abstractions.csproj" />
-    <ProjectReference Include="..\..\src\OpenTelemetry.Collector.AspNetCore\OpenTelemetry.Collector.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\src\OpenTelemetry.Collector.Dependencies\OpenTelemetry.Collector.Dependencies.csproj" />
-    <ProjectReference Include="..\..\src\OpenTelemetry.Exporter.Ocagent\OpenTelemetry.Exporter.Ocagent.csproj" />
-    <ProjectReference Include="..\..\src\OpenTelemetry\OpenTelemetry.csproj" />
+    <ProjectReference Include="..\..\..\src\OpenTelemetry.Exporter.ElasticApm\OpenTelemetry.Exporter.ElasticApm.csproj" />
   </ItemGroup>
+
+  <!--  <ItemGroup>-->
+  <!--    <ProjectReference Include="..\..\src\OpenTelemetry.Abstractions\OpenTelemetry.Abstractions.csproj" />-->
+  <!--    <ProjectReference Include="..\..\src\OpenTelemetry.Collector.AspNetCore\OpenTelemetry.Collector.AspNetCore.csproj" />-->
+  <!--    <ProjectReference Include="..\..\src\OpenTelemetry.Collector.Dependencies\OpenTelemetry.Collector.Dependencies.csproj" />-->
+  <!--    <ProjectReference Include="..\..\src\OpenTelemetry.Exporter.Ocagent\OpenTelemetry.Exporter.Ocagent.csproj" />-->
+  <!--    <ProjectReference Include="..\..\src\OpenTelemetry\OpenTelemetry.csproj" />-->
+  <!--  </ItemGroup>-->
 
 </Project>

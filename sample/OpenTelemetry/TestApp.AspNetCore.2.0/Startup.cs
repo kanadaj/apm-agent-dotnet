@@ -25,60 +25,69 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Trace.Export;
 using OpenTelemetry.Trace.Sampler;
 using System.Net.Http;
-using OpenTelemetry.Exporter.Ocagent;
+using OpenTelemetry.Exporter.ElasticApm;
+
+//using OpenTelemetry.Exporter.Ocagent;
 
 namespace TestApp.AspNetCore._2._0
 {
-    public class Startup
-    {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
+	public class Startup
+	{
+		public Startup(IConfiguration configuration)
+		{
+			Configuration = configuration;
+		}
 
-        public IConfiguration Configuration { get; }
+		public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
-        {
-            services.AddMvc();
-            services.AddSingleton<HttpClient>();
+		// This method gets called by the runtime. Use this method to add services to the container.
+		public void ConfigureServices(IServiceCollection services)
+		{
+			services.AddMvc();
+			services.AddSingleton<HttpClient>();
 
-            services.AddSingleton<ITracer>(Tracing.Tracer);
-            services.AddSingleton<ISampler>(Samplers.AlwaysSample);
-            services.AddSingleton<RequestsCollectorOptions>(new RequestsCollectorOptions());
-            services.AddSingleton<RequestsCollector>();
-            services.AddSingleton<DependenciesCollectorOptions>(new DependenciesCollectorOptions());
-            services.AddSingleton<DependenciesCollector>();
-            services.AddSingleton<ISpanExporter>(Tracing.SpanExporter);
-            services.AddSingleton<CallbackMiddleware.CallbackMiddlewareImpl>(new CallbackMiddleware.CallbackMiddlewareImpl());
-            services.AddSingleton<OcagentExporter>((p) =>
-            {
-                var exportComponent = p.GetService<ISpanExporter>();
-                return new OcagentExporter(
-                    exportComponent,
-                    "localhost:55678",
-                    Environment.MachineName,
-                    "test-app");
-            });
-        }
+			services.AddSingleton<ITracer>(Tracing.Tracer);
+			services.AddSingleton<ISampler>(Samplers.AlwaysSample);
+			services.AddSingleton<RequestsCollectorOptions>(new RequestsCollectorOptions());
+			services.AddSingleton<RequestsCollector>();
+			services.AddSingleton<DependenciesCollectorOptions>(new DependenciesCollectorOptions());
+			services.AddSingleton<DependenciesCollector>();
+			services.AddSingleton<ISpanExporter>(Tracing.SpanExporter);
+			services.AddSingleton<CallbackMiddleware.CallbackMiddlewareImpl>(new CallbackMiddleware.CallbackMiddlewareImpl());
+			services.AddSingleton<ElasticApmExporter>((p) =>
+			{
+				var exportComponent = p.GetService<ISpanExporter>();
+				return new ElasticApmExporter(exportComponent);
+			});
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, OcagentExporter agentExporter, IApplicationLifetime applicationLifetime)
-        {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
+//            services.AddSingleton<OcagentExporter>((p) =>
+//            {
+//                var exportComponent = p.GetService<ISpanExporter>();
+//                return new OcagentExporter(
+//                    exportComponent,
+//                    "localhost:55678",
+//                    Environment.MachineName,
+//                    "test-app");
+//            });
+		}
 
-            app.UseMiddleware<CallbackMiddleware>();
-            app.UseMvc();
-            var collector = app.ApplicationServices.GetService<RequestsCollector>();
-            var depCollector = app.ApplicationServices.GetService<DependenciesCollector>();
+		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+		public void Configure(IApplicationBuilder app, IHostingEnvironment env,  ElasticApmExporter agentExporter,
+			IApplicationLifetime applicationLifetime
+		)
+		{
+			if (env.IsDevelopment())
+			{
+				app.UseDeveloperExceptionPage();
+			}
 
-            agentExporter.Start();
+			app.UseMiddleware<CallbackMiddleware>();
+			app.UseMvc();
+			var collector = app.ApplicationServices.GetService<RequestsCollector>();
+			var depCollector = app.ApplicationServices.GetService<DependenciesCollector>();
 
-            applicationLifetime.ApplicationStopping.Register(agentExporter.Stop);
-        }
-    }
+			agentExporter.Start();
+			applicationLifetime.ApplicationStopping.Register(agentExporter.Stop);
+		}
+	}
 }

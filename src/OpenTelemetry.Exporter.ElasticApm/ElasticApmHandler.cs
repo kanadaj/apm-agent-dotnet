@@ -17,7 +17,21 @@ namespace OpenTelemetry.Exporter.ElasticApm
 		{
 			foreach (var span in spanDataList)
 			{
-				if (span.ParentSpanId == new ActivitySpanId()) //create transaction
+				//TODO
+				var apmServerCommunication = false;
+				foreach (var attr in span.Attributes.AttributeMap)
+				{
+					if (attr.Key == "http.url")
+					{
+						if (attr.Value.ToString().Contains("localhost:8200"))
+							apmServerCommunication = true;
+					}
+				}
+
+				if (apmServerCommunication)
+					continue;
+
+				if (span.ParentSpanId == new ActivitySpanId() || span.Kind == SpanKind.Server) //create transaction
 				{
 					var transaction = new Elastic.Apm.Api.Transaction();
 					transaction.Id = span.Context.SpanId.ToString();
@@ -27,6 +41,39 @@ namespace OpenTelemetry.Exporter.ElasticApm
 					transaction.Duration = (span.EndTimestamp - span.StartTimestamp).TotalMilliseconds;
 
 					transaction.TraceId = span.Context.TraceId.ToString();
+
+					if (span.Kind == SpanKind.Server)
+					{
+						var response = new Response();
+
+						string method = null;
+						string Uri = null;
+
+						foreach (var attr in span.Attributes.AttributeMap)
+						{
+							switch (attr.Key)
+							{
+								case "http.status_code":
+									response.StatusCode = (int)(long)attr.Value;
+									break;
+								case "http.status_text":
+									transaction.Result = attr.Value.ToString();
+									break;
+								case "http.method":
+									method = attr.Value.ToString();
+									break;
+								case "http.url":
+									Uri = attr.Value.ToString();
+									break;
+								default:
+									break;
+							}
+						}
+
+						transaction.Context = new Elastic.Apm.Api.Context();
+						transaction.Context.Request = new Request(method, new Url { Full = Uri });
+						transaction.Context.Response = response;
+					}
 
 					Agent.Instance.PayloadSender.QueueTransaction(transaction);
 				}
