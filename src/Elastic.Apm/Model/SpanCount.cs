@@ -5,7 +5,7 @@ using Elastic.Apm.Helpers;
 
 namespace Elastic.Apm.Model
 {
-	internal class SpanCount
+	public class SpanCount
 	{
 		private int _started;
 		private int _dropped;

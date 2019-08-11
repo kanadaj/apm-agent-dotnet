@@ -139,10 +139,12 @@ namespace Elastic.Apm.Report
 					var serialized = _payloadItemSerializer.SerializeObject(item);
 					switch (item)
 					{
-						case Transaction _:
+						case Api.Transaction _:
+						case Model.Transaction _:
 							ndjson.AppendLine("{\"transaction\": " + serialized + "}");
 							break;
-						case Span _:
+						case Model.Span _:
+						case Api.Span _:
 							ndjson.AppendLine("{\"span\": " + serialized + "}");
 							break;
 						case Error _:

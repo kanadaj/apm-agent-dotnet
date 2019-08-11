@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp2.2</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="OpenTelemetry" Version="0.2.0-alpha.5" />
+      <PackageReference Include="OpenTelemetry.Abstractions" Version="0.2.0-alpha.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\src\OpenTelemetry.Exporter.ElasticApm\OpenTelemetry.Exporter.ElasticApm.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using Elastic.Apm.Config;
 using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
-using Elastic.Apm.Model;
 using Elastic.Apm.Report;
+
 
 namespace Elastic.Apm.Api
 {
@@ -44,9 +44,9 @@ namespace Elastic.Apm.Api
 		public ITransaction StartTransaction(string name, string type, DistributedTracingData distributedTracingData = null) =>
 			StartTransactionInternal(name, type, distributedTracingData);
 
-		internal Transaction StartTransactionInternal(string name, string type, DistributedTracingData distributedTracingData = null)
+		internal Model.Transaction StartTransactionInternal(string name, string type, DistributedTracingData distributedTracingData = null)
 		{
-			var retVal = new Transaction(_logger, name, type, Sampler, distributedTracingData, _sender, _configurationReader,
+			var retVal = new Model.Transaction(_logger, name, type, Sampler, distributedTracingData, _sender, _configurationReader,
 				CurrentExecutionSegmentsContainer) { Service = _service };
 
 			_logger.Debug()?.Log("Starting {TransactionValue}", retVal);
