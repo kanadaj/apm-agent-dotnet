@@ -59,16 +59,6 @@ namespace TestApp.AspNetCore._2._0
 				var exportComponent = p.GetService<ISpanExporter>();
 				return new ElasticApmExporter(exportComponent);
 			});
-
-//            services.AddSingleton<OcagentExporter>((p) =>
-//            {
-//                var exportComponent = p.GetService<ISpanExporter>();
-//                return new OcagentExporter(
-//                    exportComponent,
-//                    "localhost:55678",
-//                    Environment.MachineName,
-//                    "test-app");
-//            });
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
