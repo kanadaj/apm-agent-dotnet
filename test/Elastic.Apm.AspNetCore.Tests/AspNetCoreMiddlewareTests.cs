@@ -57,6 +57,20 @@ namespace Elastic.Apm.AspNetCore.Tests
 
 		private HttpClient _client;
 
+
+		[Fact]
+		public async Task SanitizeFieldNamesTest()
+		{
+			_client.DefaultRequestHeaders.Add("password", "123");
+			var response = await _client.GetAsync("/Home/SimplePage");
+
+			_capturedPayload.Transactions.Should().ContainSingle();
+			_capturedPayload.FirstTransaction.Context.Should().NotBeNull();
+			_capturedPayload.FirstTransaction.Context.Request.Should().NotBeNull();
+			_capturedPayload.FirstTransaction.Context.Request.Headers.Should().NotBeNull();
+			_capturedPayload.FirstTransaction.Context.Request.Headers["password"].Should().Be("[REDACTED]");
+		}
+
 		/// <summary>
 		/// Simulates an HTTP GET call to /home/simplePage and asserts on what the agent should send to the server
 		/// </summary>

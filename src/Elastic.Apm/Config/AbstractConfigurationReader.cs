@@ -54,6 +54,22 @@ namespace Elastic.Apm.Config
 			}
 		}
 
+		protected List<string> ParseSanitizeFieldNames(ConfigurationKeyValue kv)
+		{
+			if (kv == null || string.IsNullOrEmpty((kv.Value))) return DefaultValues.SanitizeFieldNames;
+
+			try
+			{
+				_logger.Trace()?.Log("Try parsing SanitizeFieldNames, values: {SanitizeFieldNamesValues}", kv.Value);
+				return kv.Value.Split(',')?.ToList();
+			}
+			catch (Exception e)
+			{
+				_logger?.Error()?.LogException(e,"Failed parsing SanitizeFieldNames, values in the config: {SanitizeFieldNamesValues}", kv.Value);
+				return DefaultValues.SanitizeFieldNames;
+			}
+		}
+
 		protected string ParseSecretToken(ConfigurationKeyValue kv)
 		{
 			if (kv == null || string.IsNullOrEmpty(kv.Value)) return null;

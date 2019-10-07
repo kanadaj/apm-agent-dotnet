@@ -9,6 +9,7 @@ using Elastic.Apm.Api;
 using Elastic.Apm.AspNetCore.Extensions;
 using Elastic.Apm.Config;
 using Elastic.Apm.DistributedTracing;
+using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
 using Elastic.Apm.Model;
 using Microsoft.AspNetCore.Http;
@@ -178,8 +179,8 @@ namespace Elastic.Apm.AspNetCore
 						RemoteAddress = context.Connection?.RemoteIpAddress?.ToString()
 					},
 					HttpVersion = GetHttpVersion(context.Request.Protocol),
-					Headers = GetHeaders(context.Request.Headers),
-					Body = GetRequestBody(context.Request)
+					Headers = SanitizeHeaders(GetHeaders(context.Request.Headers)),
+					Body = GetRequestBody(context.Request) //TODO: Sanitize!
 				};
 			}
 			catch (Exception ex)
@@ -218,7 +219,7 @@ namespace Elastic.Apm.AspNetCore
 				{
 					Finished = context.Response.HasStarted, //TODO ?
 					StatusCode = context.Response.StatusCode,
-					Headers = GetHeaders(context.Response.Headers)
+					Headers = SanitizeHeaders(GetHeaders(context.Response.Headers))
 				};
 			}
 			catch (Exception ex)
@@ -228,6 +229,20 @@ namespace Elastic.Apm.AspNetCore
 					?.LogException(ex, "Exception thrown while trying to fill response context for sampled transaction {TransactionId}",
 						transaction.Id);
 			}
+		}
+
+		private Dictionary<string, string> SanitizeHeaders(Dictionary<string, string> getHeaders)
+		{
+			var matcherList = new List<WildcardMatcher>(_configurationReader.SanitizeFieldNames.Count);
+			matcherList.AddRange(_configurationReader.SanitizeFieldNames.Select(WildcardMatcher.ValueOf));
+
+			foreach (var header in getHeaders.Keys.ToList())
+			{
+				if (WildcardMatcher.IsAnyMatch(matcherList, header))
+					getHeaders[header] = "[REDACTED]"; //TODO
+			}
+
+			return getHeaders;
 		}
 
 		private void FillSampledTransactionContextUser(HttpContext context, Transaction transaction)

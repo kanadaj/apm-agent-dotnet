@@ -46,6 +46,8 @@ namespace Elastic.Apm.Config
 		public virtual double MetricsIntervalInMilliseconds =>
 			ParseMetricsInterval(Read(ConfigConsts.KeyNames.MetricsInterval, ConfigConsts.EnvVarNames.MetricsInterval));
 
+		public List<string> SanitizeFieldNames => ParseSanitizeFieldNames(Read(ConfigConsts.KeyNames.SecretToken, ConfigConsts.EnvVarNames.SanitizeFieldNames));
+
 		public virtual string SecretToken => ParseSecretToken(Read(ConfigConsts.KeyNames.SecretToken, ConfigConsts.EnvVarNames.SecretToken));
 
 		public virtual IReadOnlyList<Uri> ServerUrls => ParseServerUrls(Read(ConfigConsts.KeyNames.ServerUrls, ConfigConsts.EnvVarNames.ServerUrls));

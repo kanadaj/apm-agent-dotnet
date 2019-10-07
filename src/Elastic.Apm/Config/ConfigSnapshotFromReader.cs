@@ -27,6 +27,7 @@ namespace Elastic.Apm.Config
 		public int MaxBatchEventCount => _content.MaxBatchEventCount;
 		public int MaxQueueEventCount => _content.MaxQueueEventCount;
 		public double MetricsIntervalInMilliseconds => _content.MetricsIntervalInMilliseconds;
+		public List<string> SanitizeFieldNames => _content.SanitizeFieldNames;
 		public string SecretToken => _content.SecretToken;
 		public IReadOnlyList<Uri> ServerUrls => _content.ServerUrls;
 		public string ServiceName => _content.ServiceName;

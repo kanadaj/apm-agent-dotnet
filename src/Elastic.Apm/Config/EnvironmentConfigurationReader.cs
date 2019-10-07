@@ -45,6 +45,7 @@ namespace Elastic.Apm.Config
 		public int MaxQueueEventCount => ParseMaxQueueEventCount(Read(ConfigConsts.EnvVarNames.MaxQueueEventCount));
 
 		public double MetricsIntervalInMilliseconds => ParseMetricsInterval(Read(ConfigConsts.EnvVarNames.MetricsInterval));
+		public List<string> SanitizeFieldNames => ParseSanitizeFieldNames(Read(ConfigConsts.EnvVarNames.SanitizeFieldNames));
 
 		public string SecretToken => ParseSecretToken(Read(ConfigConsts.EnvVarNames.SecretToken));
 

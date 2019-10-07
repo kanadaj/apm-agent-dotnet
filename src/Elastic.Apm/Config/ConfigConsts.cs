@@ -29,6 +29,8 @@ namespace Elastic.Apm.Config
 			public const int TransactionMaxSpans = 500;
 			public const string UnknownServiceName = "unknown";
 			public static Uri ServerUri => new Uri($"http://localhost:{ApmServerPort}");
+			public static List<string> SanitizeFieldNames = new List<string>{"password", "passwd", "pwd", "secret", "*key", "*token*", "*session*", "*credit*",
+				"*card*", "authorization", "set-cookie"};
 		}
 
 		public static class EnvVarNames
@@ -52,6 +54,7 @@ namespace Elastic.Apm.Config
 			public const string StackTraceLimit = Prefix + "STACK_TRACE_LIMIT";
 			public const string TransactionSampleRate = Prefix + "TRANSACTION_SAMPLE_RATE";
 			public const string TransactionMaxSpans = Prefix + "TRANSACTION_MAX_SPANS";
+			public const string SanitizeFieldNames = Prefix + "SANITIZE_FIELD_NAMES";
 		}
 
 		public static class KeyNames
@@ -74,6 +77,7 @@ namespace Elastic.Apm.Config
 			public const string StackTraceLimit = "ElasticApm:StackTraceLimit";
 			public const string TransactionSampleRate = "ElasticApm:TransactionSampleRate";
 			public const string TransactionMaxSpans = "ElasticApm:TransactionMaxSpans";
+			public const string SanitizeFieldNames = "ElasticApm:SanitizeFieldNames";
 		}
 
 		public static class SupportedValues
