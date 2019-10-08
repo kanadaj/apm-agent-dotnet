@@ -25,7 +25,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 	/// It's basically an integration test.
 	/// </summary>
 	[Collection("DiagnosticListenerTest")] //To avoid tests from DiagnosticListenerTests running in parallel with this we add them to 1 collection.
-	public class AspNetCoreMiddlewareTests: LoggingTestBase, IClassFixture<WebApplicationFactory<Startup>>
+	public class AspNetCoreMiddlewareTests : LoggingTestBase, IClassFixture<WebApplicationFactory<Startup>>
 	{
 		private const string ThisClassName = nameof(AspNetCoreMiddlewareTests);
 
@@ -48,7 +48,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 				// _agent needs to share CurrentExecutionSegmentsContainer with Agent.Instance
 				// because the sample application used by the tests (SampleAspNetCoreApp) uses Agent.Instance.Tracer.CurrentTransaction/CurrentSpan
 				currentExecutionSegmentsContainer: Agent.Instance.TracerInternal.CurrentExecutionSegmentsContainer)
-				);
+			);
 			ApmMiddlewareExtension.UpdateServiceInformation(_agent.Service);
 
 			_capturedPayload = _agent.PayloadSender as MockPayloadSender;
@@ -57,18 +57,49 @@ namespace Elastic.Apm.AspNetCore.Tests
 
 		private HttpClient _client;
 
-
-		[Fact]
-		public async Task SanitizeFieldNamesTest()
+		[InlineData("password")]
+		[InlineData("pwd")]
+		[InlineData("passwd")]
+		[InlineData("secret")]
+		[InlineData("secretkey")] //*key
+		[InlineData("usertokensecret")] //*token*
+		[InlineData("usersessionid")] //*session
+		[InlineData("secretcreditcard")] //*credit*
+		[InlineData("creditcardnumber")] //*card
+		[Theory]
+		public async Task SanitizeFieldNamesTest(string headerName)
 		{
-			_client.DefaultRequestHeaders.Add("password", "123");
-			var response = await _client.GetAsync("/Home/SimplePage");
+			_client.DefaultRequestHeaders.Add(headerName, "123");
+			await _client.GetAsync("/Home/SimplePage");
 
 			_capturedPayload.Transactions.Should().ContainSingle();
 			_capturedPayload.FirstTransaction.Context.Should().NotBeNull();
 			_capturedPayload.FirstTransaction.Context.Request.Should().NotBeNull();
 			_capturedPayload.FirstTransaction.Context.Request.Headers.Should().NotBeNull();
-			_capturedPayload.FirstTransaction.Context.Request.Headers["password"].Should().Be("[REDACTED]");
+			_capturedPayload.FirstTransaction.Context.Request.Headers[headerName].Should().Be("[REDACTED]");
+		}
+
+		/// <summary>
+		/// ASP.NET Core seems to rewrite the name of these headers (so <code>authorization</code> becomes <code>Authorization</code>).
+		/// Our "by default case insensitivity" still works, the only difference is that if we send a header with name
+		/// <code>authorization</code> it'll be captured as <code>Authorization</code> (capital letter).
+		/// </summary>
+		/// <param name="headerName">The original header name sent in the HTTP GET</param>
+		/// <param name="returnedHeaderName">The header name (with capital letter) seen on the request in ASP.NET Core</param>
+		/// <returns></returns>
+		[InlineData("authorization", "Authorization")]
+		[InlineData("set-cookie", "Set-Cookie")]
+		[Theory]
+		public async Task SanitizeFieldNamesTestKnownHeaders(string headerName, string returnedHeaderName)
+		{
+			_client.DefaultRequestHeaders.Add(headerName, "123");
+			await _client.GetAsync("/Home/SimplePage");
+
+			_capturedPayload.Transactions.Should().ContainSingle();
+			_capturedPayload.FirstTransaction.Context.Should().NotBeNull();
+			_capturedPayload.FirstTransaction.Context.Request.Should().NotBeNull();
+			_capturedPayload.FirstTransaction.Context.Request.Headers.Should().NotBeNull();
+			_capturedPayload.FirstTransaction.Context.Request.Headers[returnedHeaderName].Should().Be("[REDACTED]");
 		}
 
 		/// <summary>
@@ -151,7 +182,6 @@ namespace Elastic.Apm.AspNetCore.Tests
 		[Fact]
 		public async Task HomeSimplePagePostTransactionTest()
 		{
-
 			var headerKey = "X-Additional-Header";
 			var headerValue = "For-Elastic-Apm-Agent";
 			_client.DefaultRequestHeaders.Add(headerKey, headerValue);
@@ -298,7 +328,6 @@ namespace Elastic.Apm.AspNetCore.Tests
 		[Fact]
 		public async Task FailingPostRequestWithoutConfiguredExceptionPage()
 		{
-
 			_client = Helper.GetClientWithoutExceptionPage(_agent, _factory);
 
 			_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
