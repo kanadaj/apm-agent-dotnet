@@ -57,51 +57,6 @@ namespace Elastic.Apm.AspNetCore.Tests
 
 		private HttpClient _client;
 
-		[InlineData("password")]
-		[InlineData("pwd")]
-		[InlineData("passwd")]
-		[InlineData("secret")]
-		[InlineData("secretkey")] //*key
-		[InlineData("usertokensecret")] //*token*
-		[InlineData("usersessionid")] //*session
-		[InlineData("secretcreditcard")] //*credit*
-		[InlineData("creditcardnumber")] //*card
-		[Theory]
-		public async Task SanitizeFieldNamesTest(string headerName)
-		{
-			_client.DefaultRequestHeaders.Add(headerName, "123");
-			await _client.GetAsync("/Home/SimplePage");
-
-			_capturedPayload.Transactions.Should().ContainSingle();
-			_capturedPayload.FirstTransaction.Context.Should().NotBeNull();
-			_capturedPayload.FirstTransaction.Context.Request.Should().NotBeNull();
-			_capturedPayload.FirstTransaction.Context.Request.Headers.Should().NotBeNull();
-			_capturedPayload.FirstTransaction.Context.Request.Headers[headerName].Should().Be("[REDACTED]");
-		}
-
-		/// <summary>
-		/// ASP.NET Core seems to rewrite the name of these headers (so <code>authorization</code> becomes <code>Authorization</code>).
-		/// Our "by default case insensitivity" still works, the only difference is that if we send a header with name
-		/// <code>authorization</code> it'll be captured as <code>Authorization</code> (capital letter).
-		/// </summary>
-		/// <param name="headerName">The original header name sent in the HTTP GET</param>
-		/// <param name="returnedHeaderName">The header name (with capital letter) seen on the request in ASP.NET Core</param>
-		/// <returns></returns>
-		[InlineData("authorization", "Authorization")]
-		[InlineData("set-cookie", "Set-Cookie")]
-		[Theory]
-		public async Task SanitizeFieldNamesTestKnownHeaders(string headerName, string returnedHeaderName)
-		{
-			_client.DefaultRequestHeaders.Add(headerName, "123");
-			await _client.GetAsync("/Home/SimplePage");
-
-			_capturedPayload.Transactions.Should().ContainSingle();
-			_capturedPayload.FirstTransaction.Context.Should().NotBeNull();
-			_capturedPayload.FirstTransaction.Context.Request.Should().NotBeNull();
-			_capturedPayload.FirstTransaction.Context.Request.Headers.Should().NotBeNull();
-			_capturedPayload.FirstTransaction.Context.Request.Headers[returnedHeaderName].Should().Be("[REDACTED]");
-		}
-
 		/// <summary>
 		/// Simulates an HTTP GET call to /home/simplePage and asserts on what the agent should send to the server
 		/// </summary>
