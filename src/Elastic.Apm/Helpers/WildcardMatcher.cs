@@ -36,7 +36,7 @@ namespace Elastic.Apm.Helpers
 		/// <param name="firstPart">The first part of the string to match against.</param>
 		/// <param name="secondPart">The second part of the string to match against.</param>
 		/// <returns><code>true</code> when the wildcard pattern matches the partitioned string, <code>false</code> otherwise. </returns>
-		protected abstract bool Matches(string firstPart, string secondPart);
+		internal abstract bool Matches(string firstPart, string secondPart);
 
 		/// <summary>
 		/// Constructs a new <see cref="WildcardMatcher"/> via a wildcard string.
@@ -93,7 +93,7 @@ namespace Elastic.Apm.Helpers
 		/// <param name="matchers"> The matchers which should be used to match the provided string</param>
 		/// <param name="s">The string to match against</param>
 		/// <returns>The first matching <see cref="WildcardMatcher"/>, or <code>null</code> if none match.</returns>
-		private static WildcardMatcher AnyMatch(List<WildcardMatcher> matchers, string s)
+		internal static WildcardMatcher AnyMatch(List<WildcardMatcher> matchers, string s)
 		{
 			return s == null ? null : AnyMatch(matchers, s, null);
 		}
@@ -105,7 +105,7 @@ namespace Elastic.Apm.Helpers
 		/// <param name="firstPart"> The first part of the string to match against.</param>
 		/// <param name="secondPart"> The second part of the string to match against.</param>
 		/// <returns>The first matching <see cref="WildcardMatcher"/>, or <code>null</code> if none match.</returns>
-		private static WildcardMatcher AnyMatch(IReadOnlyCollection<WildcardMatcher> matchers, string firstPart, string secondPart)
+		internal static WildcardMatcher AnyMatch(IReadOnlyCollection<WildcardMatcher> matchers, string firstPart, string secondPart)
 		{
 			for (var i = 0; i < matchers.Count; i++)
 			{
@@ -127,7 +127,7 @@ namespace Elastic.Apm.Helpers
 		/// <param name="start"></param>
 		/// <param name="end"></param>
 		/// <returns></returns>
-		private static int IndexOfIgnoreCase(string haystack1, string haystack2, string needle, bool ignoreCase, int start, int end)
+		internal static int IndexOfIgnoreCase(string haystack1, string haystack2, string needle, bool ignoreCase, int start, int end)
 		{
 			if (start < 0) return -1;
 
@@ -167,7 +167,7 @@ namespace Elastic.Apm.Helpers
 			return -1;
 		}
 
-		private static char CharAt(int i, string firstPart, string secondPart, int firstPartLength)
+		internal static char CharAt(int i, string firstPart, string secondPart, int firstPartLength)
 		{
 			return i < firstPartLength ? firstPart.ElementAt(i) : secondPart.ElementAt(i - firstPartLength);
 		}
@@ -176,7 +176,7 @@ namespace Elastic.Apm.Helpers
 		/// This <see cref="WildcardMatcher"/> supports wildcards in the middle of the matcher by decomposing the matcher into several
 		/// <see cref="WildcardMatcher.SimpleWildcardMatcher"/>.
 		/// </summary>
-		private class CompoundWildcardMatcher : WildcardMatcher
+		internal class CompoundWildcardMatcher : WildcardMatcher
 		{
 			private readonly string _matcher;
 			private readonly List<SimpleWildcardMatcher> _wildcardMatchers;
@@ -201,7 +201,7 @@ namespace Elastic.Apm.Helpers
 				return true;
 			}
 
-			protected override bool Matches(string firstPart, string secondPart)
+			internal override bool Matches(string firstPart, string secondPart)
 			{
 				var offset = 0;
 				for (var i = 0; i < _wildcardMatchers.Count; i++)
@@ -224,7 +224,7 @@ namespace Elastic.Apm.Helpers
 		/// <summary>
 		/// This <see cref="WildcardMatcher"/> does not support wildcards in the middle of a matcher.
 		/// </summary>
-		private class SimpleWildcardMatcher : WildcardMatcher
+		internal class SimpleWildcardMatcher : WildcardMatcher
 		{
 			public readonly string Matcher;
 
@@ -240,13 +240,6 @@ namespace Elastic.Apm.Helpers
 				_wildcardAtEnd = wildcardAtEnd;
 				_wildcardAtBeginning = wildcardAtBeginning;
 				_ignoreCase = ignoreCase;
-//				StringRepresentation =
-//					new StringBuilder(matcher.Length + CaseSensitivePrefix.Length + Wildcard.Length + Wildcard.Length)
-//						.Append(ignoreCase ? "" : CaseSensitivePrefix)
-//						.Append(wildcardAtBeginning ? Wildcard : "")
-//						.Append(matcher)
-//						.Append(wildcardAtEnd ? Wildcard : "")
-//						.ToString();
 			}
 
 			public override bool Matches(string s)
@@ -254,7 +247,7 @@ namespace Elastic.Apm.Helpers
 				return IndexOf(s, 0) != -1;
 			}
 
-			protected override bool Matches(string firstPart, string secondPart)
+			internal override bool Matches(string firstPart, string secondPart)
 			{
 				return IndexOf(firstPart, secondPart, 0) != -1;
 			}
