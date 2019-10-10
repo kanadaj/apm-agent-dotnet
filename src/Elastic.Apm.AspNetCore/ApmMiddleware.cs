@@ -55,6 +55,7 @@ namespace Elastic.Apm.AspNetCore
 
 			try
 			{
+				_tracer.CurrentExecutionSegmentsContainer.CurrentTransaction = transaction;
 				await _next(context);
 			}
 			catch (Exception e) when (transaction != null

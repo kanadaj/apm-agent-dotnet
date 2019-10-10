@@ -37,6 +37,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 
 				capturedPayload.Should().NotBeNull();
 
+				// ReSharper disable once PossibleNullReferenceException
 				capturedPayload.Transactions.Should().ContainSingle();
 
 				capturedPayload.Errors.Should().ContainSingle();
@@ -72,10 +73,20 @@ namespace Elastic.Apm.AspNetCore.Tests
 				var client = Helper.GetClient(agent, _factory);
 
 				var body = "{\"id\" : \"1\"}";
-				var response = await client.PostAsync("api/Home/PostError", new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+
+				try
+				{
+					 await client.PostAsync("api/Home/PostError",
+						new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+				}
+				catch
+				{
+					//exception does not matter, we only care about the captured data which we assert on below.
+				}
 
 				capturedPayload.Should().NotBeNull();
 
+				// ReSharper disable once PossibleNullReferenceException
 				capturedPayload.Transactions.Should().ContainSingle();
 
 				capturedPayload.Errors.Should().ContainSingle();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Elastic.Apm.AspNetCore.DiagnosticListener;
@@ -29,6 +30,11 @@ namespace Elastic.Apm.AspNetCore.Extensions
 				if (request.ContentType.ToLower() != "application/x-www-form-urlencoded" && request.ContentType.ToLower() != "multipart/form-data")
 					return ExtractRequestBody(request, logger, wildcardMatchers);
 
+				logger.Trace()?.Log("Capturing request body, WildcardMatcher: {WildcardMatcherStrings}",
+					string.Join(",", wildcardMatchers.Select(i => i.GetMatcher()).ToArray()));
+
+				logger.Trace()?.Log("Reading request body via HttpRequest.ReadFormAsync()");
+
 				var formsCollection = await request.ReadFormAsync();
 				body = BuildBodyStringFromIFormCollection(formsCollection, wildcardMatchers);
 			}
@@ -54,6 +60,9 @@ namespace Elastic.Apm.AspNetCore.Extensions
 		/// <returns></returns>
 		public static string ExtractRequestBody(this HttpRequest request, IApmLogger logger, List<WildcardMatcher> wildcardMatchers)
 		{
+			logger.Trace()?.Log("Capturing request body, WildcardMatcher: {WildcardMatcherStrings}",
+				string.Join(",", wildcardMatchers.Select(i => i.GetMatcher()).ToArray()));
+
 			string body = null;
 
 			try
@@ -61,12 +70,15 @@ namespace Elastic.Apm.AspNetCore.Extensions
 				if (request.ContentType.ToLower() == "application/x-www-form-urlencoded"
 					|| request.ContentType.ToLower() == "multipart/form-data" && request.Form != null)
 				{
+					logger.Trace()?.Log("Reading request body via HttpRequest.Form");
+
 					// request.Form is not ideal, request.ReadFormAsync() would be better, which is used in
 					// ExtractRequestBodyAsync.
 					body = BuildBodyStringFromIFormCollection(request.Form, wildcardMatchers);
 				}
 				else
 				{
+					logger.Trace()?.Log("Reading request body via HttpRequest.Body");
 					request.EnableRewind();
 					request.Body.Position = 0;
 

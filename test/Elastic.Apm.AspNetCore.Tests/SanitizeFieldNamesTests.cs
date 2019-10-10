@@ -16,6 +16,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 	/// Sends HTTP requests and makes sure the agent sanitizes the HTTP headers and the request body according to the
 	/// sanitizeFieldNames setting.
 	/// </summary>
+	[Collection("DiagnosticListenerTest")]
 	public class SanitizeFieldNamesTests : LoggingTestBase, IClassFixture<WebApplicationFactory<Startup>>
 	{
 		private MockPayloadSender _capturedPayload;
@@ -218,7 +219,6 @@ namespace Elastic.Apm.AspNetCore.Tests
 		/// <returns></returns>
 		[InlineData("password")]
 		[InlineData("pwd")]
-		[InlineData("passwd")]
 		[InlineData("secret")]
 		[InlineData("secretkey")] //*key
 		[InlineData("usertokensecret")] //*token*

@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Elastic.Apm.DiagnosticSource;
 using Elastic.Apm.EntityFrameworkCore;
+using Elastic.Apm.Helpers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -75,7 +77,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 				{
 					n.Configure(app =>
 					{
-						app.UseMiddleware<ApmMiddleware>(agent.Tracer, agent);
+						app.UseMiddleware<ApmMiddleware>(agent.Tracer, agent, new List<WildcardMatcher>());
 
 						app.UseDeveloperExceptionPage();
 
