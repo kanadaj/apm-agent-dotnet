@@ -4,6 +4,7 @@ using System.Reflection;
 using Elastic.Apm.AspNetCore.Extensions;
 using Elastic.Apm.Config;
 using Elastic.Apm.DiagnosticSource;
+using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
 using Microsoft.AspNetCore.Http;
 
@@ -12,14 +13,16 @@ namespace Elastic.Apm.AspNetCore.DiagnosticListener
 	internal class AspNetCoreDiagnosticListener : IDiagnosticListener
 	{
 		private readonly ScopedLogger _logger;
-		private readonly IConfigurationReader _confgurationReader;
+		private readonly IConfigurationReader _configurationReader;
 		private readonly IApmAgent _agent;
+		private readonly List<WildcardMatcher> _matcherList;
 
-		public AspNetCoreDiagnosticListener(IApmAgent agent)
+		public AspNetCoreDiagnosticListener(IApmAgent agent, List<WildcardMatcher> matcherList)
 		{
 			_agent = agent;
+			_matcherList = matcherList;
 			_logger = agent.Logger?.Scoped(nameof(AspNetCoreDiagnosticListener));
-			_confgurationReader = agent.ConfigurationReader;
+			_configurationReader = agent.ConfigurationReader;
 		}
 
 		public string Name => "Microsoft.AspNetCore";
@@ -42,9 +45,9 @@ namespace Elastic.Apm.AspNetCore.DiagnosticListener
 
 			var httpContext = kv.Value.GetType().GetTypeInfo().GetDeclaredProperty("httpContext").GetValue(kv.Value) as HttpContext;
 
-			if (_confgurationReader.ShouldExtractRequestBodyOnError())
+			if (_configurationReader.ShouldExtractRequestBodyOnError())
 			{
-				transaction.CollectRequestInfo(httpContext, _confgurationReader, _logger);
+				transaction.CollectRequestInfo(httpContext, _configurationReader, _logger, _matcherList);
 			}
 		}
 	}

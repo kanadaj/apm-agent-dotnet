@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Elastic.Apm.Config;
 using Elastic.Apm.Logging;
 using Elastic.Apm.Tests.Mocks;
 using Elastic.Apm.Tests.TestHelpers;
@@ -13,12 +12,17 @@ using Xunit.Abstractions;
 
 namespace Elastic.Apm.AspNetCore.Tests
 {
+	/// <summary>
+	/// Sends HTTP requests and makes sure the agent sanitizes the HTTP headers and the request body according to the
+	/// sanitizeFieldNames setting.
+	/// </summary>
 	public class SanitizeFieldNamesTests : LoggingTestBase, IClassFixture<WebApplicationFactory<Startup>>
 	{
 		private MockPayloadSender _capturedPayload;
 		private HttpClient _client;
 		private readonly IApmLogger _logger;
 		private readonly WebApplicationFactory<Startup> _factory;
+		private ApmAgent _agent;
 
 		public SanitizeFieldNamesTests(WebApplicationFactory<Startup> factory, ITestOutputHelper xUnitOutputHelper) : base(xUnitOutputHelper)
 		{
@@ -34,27 +38,33 @@ namespace Elastic.Apm.AspNetCore.Tests
 			var agentComponents = sanitizeFieldNames == null
 				? new TestAgentComponents(
 					_logger,
-					new MockConfigSnapshot(_logger),
+					new MockConfigSnapshot(_logger, captureBody: "all"),
 					currentExecutionSegmentsContainer: Agent.Instance.TracerInternal.CurrentExecutionSegmentsContainer)
 				: new TestAgentComponents(
 					_logger,
-					new MockConfigSnapshot(_logger, sanitizeFieldNames: sanitizeFieldNames),
+					new MockConfigSnapshot(_logger, captureBody: "all", sanitizeFieldNames: sanitizeFieldNames),
 					currentExecutionSegmentsContainer: Agent.Instance.TracerInternal.CurrentExecutionSegmentsContainer);
 
-			var agent = new ApmAgent(agentComponents);
-			ApmMiddlewareExtension.UpdateServiceInformation(agent.Service);
+			_agent = new ApmAgent(agentComponents);
+			ApmMiddlewareExtension.UpdateServiceInformation(_agent.Service);
 
-			_capturedPayload = agent.PayloadSender as MockPayloadSender;
-			_client = Helper.GetClient(agent, _factory);
+			_capturedPayload = _agent.PayloadSender as MockPayloadSender;
+			_client = Helper.GetClient(_agent, _factory);
 		}
 
-
-		[InlineData("*mySecurityHeader", new[] { "abcmySecurityHeader", "aSecurityHeader", "mySecurityHeader" })]
+		/// <summary>
+		/// Sends an HTTP GET with the given headers and makes sure all of them are sanitized.
+		/// This test applies custom values to the SanitizeFieldNames setting
+		/// </summary>
+		/// <param name="sanitizeFieldNames"></param>
+		/// <param name="headerNames"></param>
+		/// <returns></returns>
+		[InlineData("*mySecurityHeader", new[] { "abcmySecurityHeader", "amySecurityHeader", "mySecurityHeader" })]
 		[InlineData("mySecurityHeader*", new[] { "mySecurityHeaderAbc", "mySecurityHeaderAbc1", "mySecurityHeader" })]
-		[InlineData("*mySecurityHeader*", new[] { "AbcmySecurityHeaderAbc", "aSecurityHeaderA", "mySecurityHeader" })]
+		[InlineData("*mySecurityHeader*", new[] { "AbcmySecurityHeaderAbc", "amySecurityHeaderA", "mySecurityHeader" })]
 		[InlineData("mysecurityheader", new[] { "mySECURITYHeader" })]
 		[Theory]
-		public async Task CustomSanitizeFieldNameSetting(string sanitizeFieldNames, string[] headerNames)
+		public async Task CustomSanitizeFieldNameSettingWithHeaders(string sanitizeFieldNames, string[] headerNames)
 		{
 			CreateAgent(sanitizeFieldNames);
 
@@ -71,7 +81,14 @@ namespace Elastic.Apm.AspNetCore.Tests
 				_capturedPayload.FirstTransaction.Context.Request.Headers[header].Should().Be("[REDACTED]");
 		}
 
-
+		/// <summary>
+		/// Sends an HTTP GET with the given headers and makes sure all of them are sanitized.
+		/// This test applies custom values to the SanitizeFieldNames setting. It also turns on case sensitivity.
+		/// </summary>
+		/// <param name="sanitizeFieldNames"></param>
+		/// <param name="headerName"></param>
+		/// <param name="shouldBeSanitized"></param>
+		/// <returns></returns>
 		[InlineData("mysecurityheader", "mySECURITYHeader", true)]
 		[InlineData("(?-i)mysecurityheader", "mySECURITYHeader", false)]
 		[InlineData("(?-i)mySECURITYheader", "mySECURITYheader", true)]
@@ -82,7 +99,9 @@ namespace Elastic.Apm.AspNetCore.Tests
 		[InlineData("(?-i)*mySECURITYheader*", "TestmySECURITYheaderTest", true)]
 		[InlineData("(?-i)*mySECURITYheader*", "TestmysecURITYheaderTest", false)]
 		[Theory]
-		public async Task CustomSanitizeFieldNameSettingWithCaseSensitivity(string sanitizeFieldNames, string headerName, bool shouldBeSanitized)
+		public async Task CustomSanitizeFieldNameSettingWithCaseSensitivityWithHeaders(string sanitizeFieldNames, string headerName,
+			bool shouldBeSanitized
+		)
 		{
 			CreateAgent(sanitizeFieldNames);
 			const string headerValue = "123";
@@ -116,7 +135,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 		[InlineData("secretcreditcard")] //*credit*
 		[InlineData("creditcardnumber")] //*card
 		[Theory]
-		public async Task SanitizeFieldNamesDefaults(string headerName)
+		public async Task DefaultsWithHeaders(string headerName)
 		{
 			CreateAgent();
 			_client.DefaultRequestHeaders.Add(headerName, "123");
@@ -134,7 +153,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 		/// Our "by default case insensitivity" still works, the only difference is that if we send a header with name
 		/// <code>authorization</code> it'll be captured as <code>Authorization</code> (capital letter).
 		///
-		/// Otherwise same as <see cref="SanitizeFieldNamesDefaults"/>.
+		/// Otherwise same as <see cref="DefaultsWithHeaders"/>.
 		///
 		/// </summary>
 		/// <param name="headerName">The original header name sent in the HTTP GET</param>
@@ -143,7 +162,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 		[InlineData("authorization", "Authorization")]
 		[InlineData("set-cookie", "Set-Cookie")]
 		[Theory]
-		public async Task SanitizeFieldNamesDefaultsKnownHeaders(string headerName, string returnedHeaderName)
+		public async Task DefaultsWithKnownHeaders(string headerName, string returnedHeaderName)
 		{
 			CreateAgent();
 			_client.DefaultRequestHeaders.Add(headerName, "123");
@@ -154,6 +173,119 @@ namespace Elastic.Apm.AspNetCore.Tests
 			_capturedPayload.FirstTransaction.Context.Request.Should().NotBeNull();
 			_capturedPayload.FirstTransaction.Context.Request.Headers.Should().NotBeNull();
 			_capturedPayload.FirstTransaction.Context.Request.Headers[returnedHeaderName].Should().Be("[REDACTED]");
+		}
+
+
+		/// <summary>
+		/// Sends an HTTP post with content type application/x-www-form-urlencoded
+		/// Makes sure that fields in the body are sanitized accordingly
+		/// </summary>
+		/// <param name="formName"></param>
+		/// <returns></returns>
+		[InlineData("password")]
+		[InlineData("pwd")]
+		[InlineData("passwd")]
+		[InlineData("secret")]
+		[InlineData("secretkey")] //*key
+		[InlineData("usertokensecret")] //*token*
+		[InlineData("usersessionid")] //*session
+		[InlineData("secretcreditcard")] //*credit*
+		[InlineData("creditcardnumber")] //*card
+		[Theory]
+		public async Task DefaultWithRequestBodyNoError(string formName)
+		{
+			CreateAgent();
+
+			var nvc = new List<KeyValuePair<string, string>>();
+			nvc.Add(new KeyValuePair<string, string>("Input1", "test1"));
+			nvc.Add(new KeyValuePair<string, string>(formName, "test2"));
+
+			var req = new HttpRequestMessage(HttpMethod.Post, "api/Home/Post") { Content = new FormUrlEncodedContent(nvc) };
+			var res = await _client.SendAsync(req);
+
+			res.IsSuccessStatusCode.Should().BeTrue();
+
+			_capturedPayload.Errors.Should().BeNullOrEmpty();
+			_capturedPayload.Transactions.Should().ContainSingle();
+
+			_capturedPayload.FirstTransaction.Context.Request.Body.Should().Be($"Input1=test1&{formName}=[REDACTED]");
+		}
+
+		/// <summary>
+		/// Same as <see cref="DefaultWithRequestBodyNoError"/> except this time the request ends up with an error
+		/// </summary>
+		/// <param name="formName"></param>
+		/// <returns></returns>
+		[InlineData("password")]
+		[InlineData("pwd")]
+		[InlineData("passwd")]
+		[InlineData("secret")]
+		[InlineData("secretkey")] //*key
+		[InlineData("usertokensecret")] //*token*
+		[InlineData("usersessionid")] //*session
+		[InlineData("secretcreditcard")] //*credit*
+		[InlineData("creditcardnumber")] //*card
+		[Theory]
+		public async Task DefaultWithRequestBodyWithError(string formName)
+		{
+			CreateAgent();
+
+			var nvc = new List<KeyValuePair<string, string>>();
+			nvc.Add(new KeyValuePair<string, string>("Input1", "test1"));
+			nvc.Add(new KeyValuePair<string, string>(formName, "test2"));
+
+			var req = new HttpRequestMessage(HttpMethod.Post, "api/Home/PostError") { Content = new FormUrlEncodedContent(nvc) };
+
+			try
+			{
+				var res = await _client.SendAsync(req);
+				res.IsSuccessStatusCode.Should().BeFalse();
+			}
+			catch
+			{
+				// exception is fine, it doesn't really matter what happens with the call, important is the captured body, which we assert on later.
+			}
+
+			_capturedPayload.Transactions.Should().ContainSingle();
+			_capturedPayload.FirstError.Should().NotBeNull();
+			_capturedPayload.FirstTransaction.Context.Request.Body.Should().Be($"Input1=test1&{formName}=[REDACTED]");
+		}
+
+		/// <summary>
+		/// Applies custom values to sanitizeFieldNames and makes sure that the request body is sanitized accordingly.
+		/// </summary>
+		/// <param name="sanitizeFieldNames"></param>
+		/// <param name="formName"></param>
+		/// <param name="shouldBeSanitized"></param>
+		/// <returns></returns>
+		[InlineData("mysecurityheader", "mySECURITYHeader", true)]
+		[InlineData("(?-i)mysecurityheader", "mySECURITYHeader", false)]
+		[InlineData("(?-i)mySECURITYheader", "mySECURITYheader", true)]
+		[InlineData("(?-i)*mySECURITYheader", "TestmySECURITYheader", true)]
+		[InlineData("(?-i)*mySECURITYheader", "TestmysecURITYheader", false)]
+		[InlineData("(?-i)mySECURITYheader*", "mySECURITYheaderTest", true)]
+		[InlineData("(?-i)mySECURITYheader*", "mysecURITYheaderTest", false)]
+		[InlineData("(?-i)*mySECURITYheader*", "TestmySECURITYheaderTest", true)]
+		[InlineData("(?-i)*mySECURITYheader*", "TestmysecURITYheaderTest", false)]
+		[Theory]
+		public async Task CustomWithRequestBodyNoError(string sanitizeFieldNames, string formName, bool shouldBeSanitized)
+		{
+			CreateAgent(sanitizeFieldNames);
+
+			var nvc = new List<KeyValuePair<string, string>>();
+			nvc.Add(new KeyValuePair<string, string>("Input1", "test1"));
+			nvc.Add(new KeyValuePair<string, string>(formName, "test2"));
+
+			var req = new HttpRequestMessage(HttpMethod.Post, "api/Home/Post") { Content = new FormUrlEncodedContent(nvc) };
+			var res = await _client.SendAsync(req);
+
+			res.IsSuccessStatusCode.Should().BeTrue();
+
+			_capturedPayload.Errors.Should().BeNullOrEmpty();
+			_capturedPayload.Transactions.Should().ContainSingle();
+
+			_capturedPayload.FirstTransaction.Context.Request.Body.Should()
+				.Be(shouldBeSanitized ? $"Input1=test1&{formName}=[REDACTED]" : $"Input1=test1&{formName}=test2");
 		}
 	}
 }

@@ -35,31 +35,38 @@ namespace Elastic.Apm.AspNetCore
 		private readonly RequestDelegate _next;
 		private readonly Tracer _tracer;
 
-		public ApmMiddleware(RequestDelegate next, Tracer tracer, IApmAgent agent)
+		/// <summary>
+		/// List of <see cref="WildcardMatcher"/>s which are used to sanitize HTTP headers and form input
+		/// </summary>
+		private readonly List<WildcardMatcher> _wildcardMatchers;
+
+		public ApmMiddleware(RequestDelegate next, Tracer tracer, IApmAgent agent, List<WildcardMatcher> wildcardMatchers)
 		{
 			_next = next;
 			_tracer = tracer;
+			_wildcardMatchers = wildcardMatchers;
 			_configurationReader = agent.ConfigurationReader;
 			_logger = agent.Logger.Scoped(nameof(ApmMiddleware));
 		}
 
 		public async Task InvokeAsync(HttpContext context)
 		{
-			var transaction = StartTransaction(context);
+			var transaction = await StartTransaction(context);
 
 			try
 			{
 				await _next(context);
 			}
 			catch (Exception e) when (transaction != null
-				&& Helpers.ExceptionFilter.Capture(e, transaction, context, _configurationReader, _logger)) { }
+				&& Helpers.ExceptionFilter.Capture(e, transaction, context, _configurationReader, _logger, _wildcardMatchers)) { }
 			finally
 			{
+
 				StopTransaction(transaction, context);
 			}
 		}
 
-		private Transaction StartTransaction(HttpContext context)
+		private async Task<Transaction> StartTransaction(HttpContext context)
 		{
 			try
 			{
@@ -102,7 +109,7 @@ namespace Elastic.Apm.AspNetCore
 						ApiConstants.TypeRequest);
 				}
 
-				if (transaction.IsSampled) FillSampledTransactionContextRequest(context, transaction);
+				if (transaction.IsSampled) await FillSampledTransactionContextRequest(context, transaction);
 
 				return transaction;
 			}
@@ -155,7 +162,7 @@ namespace Elastic.Apm.AspNetCore
 			return rawPathAndQuery == null ? null : UriHelper.BuildAbsolute(httpRequest.Scheme, httpRequest.Host, rawPathAndQuery);
 		}
 
-		private void FillSampledTransactionContextRequest(HttpContext context, Transaction transaction)
+		private async Task FillSampledTransactionContextRequest(HttpContext context, Transaction transaction)
 		{
 			try
 			{
@@ -180,7 +187,7 @@ namespace Elastic.Apm.AspNetCore
 					},
 					HttpVersion = GetHttpVersion(context.Request.Protocol),
 					Headers = SanitizeHeaders(GetHeaders(context.Request.Headers)),
-					Body = GetRequestBody(context.Request) //TODO: Sanitize!
+					Body = await GetRequestBody(context.Request)
 				};
 			}
 			catch (Exception ex)
@@ -192,14 +199,14 @@ namespace Elastic.Apm.AspNetCore
 			}
 		}
 
-		private string GetRequestBody(HttpRequest request)
+		private async Task<string> GetRequestBody(HttpRequest request)
 		{
 			// ReSharper disable once InvertIf
 			if (_configurationReader.ShouldExtractRequestBodyOnTransactions() && !string.IsNullOrEmpty(request?.ContentType))
 			{
 				var contentType = new ContentType(request.ContentType);
 				if (_configurationReader.CaptureBodyContentTypes.ContainsLike(contentType.MediaType))
-					return request.ExtractRequestBody(_logger) ?? Consts.BodyRedacted;
+					return await request.ExtractRequestBodyAsync(_logger, _wildcardMatchers) ?? Consts.BodyRedacted;
 			}
 
 			// According to the documentation - the default value of 'body' is '[Redacted]'
@@ -233,13 +240,10 @@ namespace Elastic.Apm.AspNetCore
 
 		private Dictionary<string, string> SanitizeHeaders(Dictionary<string, string> getHeaders)
 		{
-			var matcherList = new List<WildcardMatcher>(_configurationReader.SanitizeFieldNames.Count);
-			matcherList.AddRange(_configurationReader.SanitizeFieldNames.Select(WildcardMatcher.ValueOf));
-
 			foreach (var header in getHeaders.Keys.ToList())
 			{
-				if (WildcardMatcher.IsAnyMatch(matcherList, header))
-					getHeaders[header] = "[REDACTED]"; //TODO
+				if (WildcardMatcher.IsAnyMatch(_wildcardMatchers, header))
+					getHeaders[header] = "[REDACTED]";
 			}
 
 			return getHeaders;

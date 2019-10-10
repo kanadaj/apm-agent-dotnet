@@ -7,6 +7,7 @@ using Elastic.Apm.AspNetCore.Config;
 using Elastic.Apm.AspNetCore.DiagnosticListener;
 using Elastic.Apm.Config;
 using Elastic.Apm.DiagnosticSource;
+using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -64,12 +65,17 @@ namespace Elastic.Apm.AspNetCore
 			params IDiagnosticsSubscriber[] subscribers
 		)
 		{
+			// We construct the matcher list here that we pass to the middleware and the AspNetCoreDiagnosticsSubscriber
+			// This way we only allocate the list once. In case the SanitizeFieldNames becomes live changeble this must be refactored.
+			var matcherList = new List<WildcardMatcher>(agent.ConfigurationReader.SanitizeFieldNames.Count);
+			matcherList.AddRange(agent.ConfigurationReader.SanitizeFieldNames.Select(WildcardMatcher.ValueOf));
+
 			var subs = new List<IDiagnosticsSubscriber>(subscribers ?? Array.Empty<IDiagnosticsSubscriber>())
 			{
-				new AspNetCoreDiagnosticsSubscriber()
+				new AspNetCoreDiagnosticsSubscriber(matcherList)
 			};
 			agent.Subscribe(subs.ToArray());
-			return builder.UseMiddleware<ApmMiddleware>(agent.Tracer, agent);
+			return builder.UseMiddleware<ApmMiddleware>(agent.Tracer, agent, matcherList);
 		}
 
 		internal static string GetEnvironmentName(this IServiceProvider serviceProvider) =>

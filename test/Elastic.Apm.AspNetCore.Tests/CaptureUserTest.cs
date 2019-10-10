@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Elastic.Apm.Api;
+using Elastic.Apm.Helpers;
 using Elastic.Apm.Model;
 using Elastic.Apm.Tests.Mocks;
 using FluentAssertions;
@@ -122,7 +122,7 @@ namespace Elastic.Apm.AspNetCore.Tests
 					}, "someAuthTypeName"))
 				};
 
-				var middleware = new ApmMiddleware(async (innerHttpContext) => { await Task.Delay(1); }, agent.TracerInternal, agent);
+				var middleware = new ApmMiddleware(async (innerHttpContext) => { await Task.Delay(1); }, agent.TracerInternal, agent, new List<WildcardMatcher>());
 
 				await middleware.InvokeAsync(context);
 			}

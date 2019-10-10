@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Elastic.Apm.Api;
 using Elastic.Apm.AspNetCore.Extensions;
 using Elastic.Apm.Config;
+using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
 using Microsoft.AspNetCore.Http;
 
@@ -14,13 +17,13 @@ namespace Elastic.Apm.AspNetCore.Helpers
 	/// </summary>
 	internal static class ExceptionFilter
 	{
-		internal static bool Capture(Exception e, ITransaction transaction, HttpContext httpContext, IConfigurationReader configurationReader, IApmLogger logger)
+		internal static bool Capture(Exception e, ITransaction transaction, HttpContext httpContext, IConfigurationReader configurationReader, IApmLogger logger, List<WildcardMatcher> wildcardMatcherList)
 		{
 			transaction.CaptureException(e);
 
 			if (httpContext != null && configurationReader.ShouldExtractRequestBodyOnError())
-				transaction.CollectRequestInfo(httpContext, configurationReader, logger);
-			
+				 transaction.CollectRequestInfo(httpContext, configurationReader, logger, wildcardMatcherList);
+
 			return false;
 		}
 	}
