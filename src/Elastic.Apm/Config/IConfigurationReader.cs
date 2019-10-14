@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
 
 namespace Elastic.Apm.Config
@@ -92,7 +93,7 @@ namespace Elastic.Apm.Config
 		// Configure a list of wildcard patterns of field names which should be sanitized.
 		// These apply for example to HTTP headers and application/x-www-form-urlencoded data.
 		// </summary>
-		List<string> SanitizeFieldNames { get; }
+		IReadOnlyList<WildcardMatcher> SanitizeFieldNames { get; }
 		string SecretToken { get; }
 		IReadOnlyList<Uri> ServerUrls { get; }
 		string ServiceName { get; }

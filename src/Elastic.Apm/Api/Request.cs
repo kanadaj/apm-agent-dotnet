@@ -16,6 +16,7 @@ namespace Elastic.Apm.Api
 
 		public object Body { get; set; }
 
+		[JsonConverter(typeof(DictionarySanitizerConverter))]
 		public Dictionary<string, string> Headers { get; set; }
 
 		[JsonProperty("http_version")]

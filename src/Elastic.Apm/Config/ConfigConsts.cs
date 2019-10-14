@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Elastic.Apm.Helpers;
 
 namespace Elastic.Apm.Config
 {
@@ -12,6 +13,17 @@ namespace Elastic.Apm.Config
 
 		public static class DefaultValues
 		{
+			static DefaultValues()
+			{
+				SanitizeFieldNames = new List<WildcardMatcher>();
+				foreach (var item in new List<string>
+				{
+					"password", "passwd", "pwd", "secret", "*key", "*token*", "*session*", "*credit*",
+					"*card*", "authorization", "set-cookie"
+				})
+					SanitizeFieldNames.Add(WildcardMatcher.ValueOf(item));
+			}
+
 			public const int ApmServerPort = 8200;
 			public const string CaptureBody = SupportedValues.CaptureBodyOff;
 			public const string CaptureBodyContentTypes = "application/x-www-form-urlencoded*, text/*, application/json*, application/xml*";
@@ -29,8 +41,7 @@ namespace Elastic.Apm.Config
 			public const int TransactionMaxSpans = 500;
 			public const string UnknownServiceName = "unknown";
 			public static Uri ServerUri => new Uri($"http://localhost:{ApmServerPort}");
-			public static List<string> SanitizeFieldNames = new List<string>{"password", "passwd", "pwd", "secret", "*key", "*token*", "*session*", "*credit*",
-				"*card*", "authorization", "set-cookie"};
+			public static List<WildcardMatcher> SanitizeFieldNames;
 		}
 
 		public static class EnvVarNames

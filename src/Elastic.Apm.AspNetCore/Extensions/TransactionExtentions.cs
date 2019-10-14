@@ -19,9 +19,8 @@ namespace Elastic.Apm.AspNetCore.Extensions
 		/// <param name="httpContext">Current http context</param>
 		/// <param name="configurationReader"></param>
 		/// <param name="logger">Logger object</param>
-		/// <param name="matcherList"></param>
 		public static void CollectRequestInfo(this ITransaction transaction, HttpContext httpContext, IConfigurationReader configurationReader,
-			IApmLogger logger, List<WildcardMatcher> matcherList
+			IApmLogger logger
 		)
 		{
 			var body = Consts.BodyRedacted; // According to the documentation - the default value of 'body' is '[Redacted]'
@@ -34,7 +33,7 @@ namespace Elastic.Apm.AspNetCore.Extensions
 				//Request must not be null and the content type must be matched with the 'captureBodyContentTypes' configured
 				if (httpContext?.Request != null && configurationReader.CaptureBodyContentTypes.ContainsLike(contentType.MediaType))
 				{
-					body = httpContext.Request.ExtractRequestBody(logger, matcherList);
+					body = httpContext.Request.ExtractRequestBody(logger, configurationReader);
 				}
 				transaction.Context.Request.Body = string.IsNullOrEmpty(body) ? Consts.BodyRedacted : body;
 			}

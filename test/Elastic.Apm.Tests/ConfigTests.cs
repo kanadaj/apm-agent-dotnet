@@ -626,6 +626,31 @@ namespace Elastic.Apm.Tests
 				agent.ConfigurationReader.CentralConfig.Should().Be(expectedValue);
 		}
 
+		/// <summary>
+		/// Makes sure that empty string means sanitization is turned off
+		/// </summary>
+		[Fact]
+		public void SanitizeFieldNamesTestWithEmptyString()
+		{
+			using (var agent =
+				new ApmAgent(new TestAgentComponents(
+					config: new MockConfigSnapshot(sanitizeFieldNames: ""))))
+				agent.ConfigurationReader.SanitizeFieldNames.Should().BeEmpty();
+		}
+
+		/// <summary>
+		/// Makes sure that in case SanitizeFieldNames is not set, the agent uses the default SanitizeFieldNames
+		/// </summary>
+		[Fact]
+		public void SanitizeFieldNamesTestWithNoValue()
+		{
+			using (var agent =
+				new ApmAgent(new TestAgentComponents(
+					config: new MockConfigSnapshot())))
+				agent.ConfigurationReader.SanitizeFieldNames.Should().BeEquivalentTo(DefaultValues.SanitizeFieldNames);
+
+		}
+
 		private static double MetricsIntervalTestCommon(string configValue)
 		{
 			Environment.SetEnvironmentVariable(EnvVarNames.MetricsInterval, configValue);

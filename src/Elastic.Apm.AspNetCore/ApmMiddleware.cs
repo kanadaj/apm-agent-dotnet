@@ -35,16 +35,10 @@ namespace Elastic.Apm.AspNetCore
 		private readonly RequestDelegate _next;
 		private readonly Tracer _tracer;
 
-		/// <summary>
-		/// List of <see cref="WildcardMatcher"/>s which are used to sanitize HTTP headers and form input
-		/// </summary>
-		private readonly List<WildcardMatcher> _wildcardMatchers;
-
-		public ApmMiddleware(RequestDelegate next, Tracer tracer, IApmAgent agent, List<WildcardMatcher> wildcardMatchers)
+		public ApmMiddleware(RequestDelegate next, Tracer tracer, IApmAgent agent)
 		{
 			_next = next;
 			_tracer = tracer;
-			_wildcardMatchers = wildcardMatchers;
 			_configurationReader = agent.ConfigurationReader;
 			_logger = agent.Logger.Scoped(nameof(ApmMiddleware));
 		}
@@ -59,7 +53,7 @@ namespace Elastic.Apm.AspNetCore
 				await _next(context);
 			}
 			catch (Exception e) when (transaction != null
-				&& Helpers.ExceptionFilter.Capture(e, transaction, context, _configurationReader, _logger, _wildcardMatchers)) { }
+				&& Helpers.ExceptionFilter.Capture(e, transaction, context, _configurationReader, _logger)) { }
 			finally
 			{
 
@@ -207,7 +201,7 @@ namespace Elastic.Apm.AspNetCore
 			{
 				var contentType = new ContentType(request.ContentType);
 				if (_configurationReader.CaptureBodyContentTypes.ContainsLike(contentType.MediaType))
-					return await request.ExtractRequestBodyAsync(_logger, _wildcardMatchers) ?? Consts.BodyRedacted;
+					return await request.ExtractRequestBodyAsync(_logger, _configurationReader) ?? Consts.BodyRedacted;
 			}
 
 			// According to the documentation - the default value of 'body' is '[Redacted]'
@@ -243,7 +237,7 @@ namespace Elastic.Apm.AspNetCore
 		{
 			foreach (var header in getHeaders.Keys.ToList())
 			{
-				if (WildcardMatcher.IsAnyMatch(_wildcardMatchers, header))
+				if (WildcardMatcher.IsAnyMatch(_configurationReader.SanitizeFieldNames, header))
 					getHeaders[header] = "[REDACTED]";
 			}
 

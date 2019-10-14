@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Elastic.Apm.Config;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 

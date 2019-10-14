@@ -11,7 +11,7 @@ namespace Elastic.Apm.Helpers
 	/// Matching is case insensitive by default.
 	/// Prepending an element with `(?-i)` makes the matching case sensitive.
 	/// </summary>
-	internal abstract class WildcardMatcher
+	public abstract class WildcardMatcher
 	{
 		private const string CaseInsensitivePrefix = "(?i)";
 
@@ -82,7 +82,7 @@ namespace Elastic.Apm.Helpers
 		/// <param name="matchers">The matchers which should be used to match the provided string</param>
 		/// <param name="s">The string to match against</param>
 		/// <returns><code>true</code>, if any of the matchers match the provided string</returns>
-		public static bool IsAnyMatch(List<WildcardMatcher> matchers, string s)
+		public static bool IsAnyMatch(IReadOnlyList<WildcardMatcher> matchers, string s)
 		{
 			return AnyMatch(matchers, s) != null;
 		}
@@ -93,7 +93,7 @@ namespace Elastic.Apm.Helpers
 		/// <param name="matchers"> The matchers which should be used to match the provided string</param>
 		/// <param name="s">The string to match against</param>
 		/// <returns>The first matching <see cref="WildcardMatcher"/>, or <code>null</code> if none match.</returns>
-		internal static WildcardMatcher AnyMatch(List<WildcardMatcher> matchers, string s)
+		internal static WildcardMatcher AnyMatch(IReadOnlyList<WildcardMatcher> matchers, string s)
 		{
 			return s == null ? null : AnyMatch(matchers, s, null);
 		}

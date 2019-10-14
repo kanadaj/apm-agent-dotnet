@@ -15,12 +15,10 @@ namespace Elastic.Apm.AspNetCore.DiagnosticListener
 		private readonly ScopedLogger _logger;
 		private readonly IConfigurationReader _configurationReader;
 		private readonly IApmAgent _agent;
-		private readonly List<WildcardMatcher> _matcherList;
 
-		public AspNetCoreDiagnosticListener(IApmAgent agent, List<WildcardMatcher> matcherList)
+		public AspNetCoreDiagnosticListener(IApmAgent agent)
 		{
 			_agent = agent;
-			_matcherList = matcherList;
 			_logger = agent.Logger?.Scoped(nameof(AspNetCoreDiagnosticListener));
 			_configurationReader = agent.ConfigurationReader;
 		}
@@ -47,7 +45,7 @@ namespace Elastic.Apm.AspNetCore.DiagnosticListener
 
 			if (_configurationReader.ShouldExtractRequestBodyOnError())
 			{
-				transaction.CollectRequestInfo(httpContext, _configurationReader, _logger, _matcherList);
+				transaction.CollectRequestInfo(httpContext, _configurationReader, _logger);
 			}
 		}
 	}

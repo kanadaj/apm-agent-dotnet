@@ -19,6 +19,7 @@ namespace Elastic.Apm.Config
 		private readonly LazyContextualInit<int> _cachedMaxBatchEventCount = new LazyContextualInit<int>();
 		private readonly LazyContextualInit<int> _cachedMaxQueueEventCount = new LazyContextualInit<int>();
 		private readonly LazyContextualInit<IReadOnlyList<Uri>> _cachedServerUrls = new LazyContextualInit<IReadOnlyList<Uri>>();
+		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchers = new LazyContextualInit<IReadOnlyList<WildcardMatcher>>();
 
 		protected AbstractConfigurationReader(IApmLogger logger, string dbgDerivedClassName) =>
 			_logger = logger?.Scoped($"{ThisClassName} ({dbgDerivedClassName})");
@@ -54,14 +55,21 @@ namespace Elastic.Apm.Config
 			}
 		}
 
-		protected List<string> ParseSanitizeFieldNames(ConfigurationKeyValue kv)
+		protected IReadOnlyList<WildcardMatcher> ParseSanitizeFieldNames(ConfigurationKeyValue kv) =>
+			_cachedWildcardMatchers.IfNotInited?.InitOrGet(() => ParseSanitizeFieldNamesImpl(kv)) ?? _cachedWildcardMatchers.Value;
+
+		protected IReadOnlyList<WildcardMatcher> ParseSanitizeFieldNamesImpl(ConfigurationKeyValue kv)
 		{
-			if (kv == null || string.IsNullOrEmpty((kv.Value))) return DefaultValues.SanitizeFieldNames;
+			if (kv == null) return DefaultValues.SanitizeFieldNames;
 
 			try
 			{
-				_logger.Trace()?.Log("Try parsing SanitizeFieldNames, values: {SanitizeFieldNamesValues}", kv.Value);
-				return kv.Value.Split(',')?.ToList();
+				_logger?.Trace()?.Log("Try parsing SanitizeFieldNames, values: {SanitizeFieldNamesValues}", kv.Value);
+				var sanitizeFieldNames = kv.Value.Split(',').Where(n => !string.IsNullOrEmpty(n)).ToList();
+
+				var retVal = new List<WildcardMatcher>(sanitizeFieldNames.Count);
+				foreach (var item in sanitizeFieldNames) retVal.Add(WildcardMatcher.ValueOf(item));
+				return retVal;
 			}
 			catch (Exception e)
 			{

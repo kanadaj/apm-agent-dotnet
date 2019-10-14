@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Elastic.Apm.AspNetCore.DiagnosticListener;
+using Elastic.Apm.Config;
 using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
 using Microsoft.AspNetCore.Http;
@@ -20,23 +21,23 @@ namespace Elastic.Apm.AspNetCore.Extensions
 		/// </summary>
 		/// <param name="request"></param>
 		/// <param name="logger"></param>
-		/// <param name="wildcardMatchers"></param>
+		/// <param name="configReader"></param>
 		/// <returns></returns>
-		public static async Task<string> ExtractRequestBodyAsync(this HttpRequest request, IApmLogger logger, List<WildcardMatcher> wildcardMatchers)
+		public static async Task<string> ExtractRequestBodyAsync(this HttpRequest request, IApmLogger logger, IConfigurationReader configReader)
 		{
 			string body = null;
 			try
 			{
 				if (request.ContentType.ToLower() != "application/x-www-form-urlencoded" && request.ContentType.ToLower() != "multipart/form-data")
-					return ExtractRequestBody(request, logger, wildcardMatchers);
+					return ExtractRequestBody(request, logger, configReader);
 
 				logger.Trace()?.Log("Capturing request body, WildcardMatcher: {WildcardMatcherStrings}",
-					string.Join(",", wildcardMatchers.Select(i => i.GetMatcher()).ToArray()));
+					string.Join(",", configReader.SanitizeFieldNames.Select(i => i.GetMatcher()).ToArray()));
 
 				logger.Trace()?.Log("Reading request body via HttpRequest.ReadFormAsync()");
 
 				var formsCollection = await request.ReadFormAsync();
-				body = BuildBodyStringFromIFormCollection(formsCollection, wildcardMatchers);
+				body = BuildBodyStringFromIFormCollection(formsCollection, configReader);
 			}
 			catch (Exception e)
 			{
@@ -56,12 +57,12 @@ namespace Elastic.Apm.AspNetCore.Extensions
 		/// </summary>
 		/// <param name="request"></param>
 		/// <param name="logger"></param>
-		/// <param name="wildcardMatchers"></param>
+		/// <param name="configReader"></param>
 		/// <returns></returns>
-		public static string ExtractRequestBody(this HttpRequest request, IApmLogger logger, List<WildcardMatcher> wildcardMatchers)
+		public static string ExtractRequestBody(this HttpRequest request, IApmLogger logger, IConfigurationReader configReader)
 		{
 			logger.Trace()?.Log("Capturing request body, WildcardMatcher: {WildcardMatcherStrings}",
-				string.Join(",", wildcardMatchers.Select(i => i.GetMatcher()).ToArray()));
+				string.Join(",", configReader.SanitizeFieldNames.Select(i => i.GetMatcher()).ToArray()));
 
 			string body = null;
 
@@ -74,7 +75,7 @@ namespace Elastic.Apm.AspNetCore.Extensions
 
 					// request.Form is not ideal, request.ReadFormAsync() would be better, which is used in
 					// ExtractRequestBodyAsync.
-					body = BuildBodyStringFromIFormCollection(request.Form, wildcardMatchers);
+					body = BuildBodyStringFromIFormCollection(request.Form, configReader);
 				}
 				else
 				{
@@ -111,9 +112,9 @@ namespace Elastic.Apm.AspNetCore.Extensions
 		/// Builds a string from the <code>IFormCollection</code> collection and also applies sanitization.
 		/// </summary>
 		/// <param name="formsCollection"></param>
-		/// <param name="wildcardMatchers"></param>
+		/// <param name="configReader"></param>
 		/// <returns></returns>
-		private static string BuildBodyStringFromIFormCollection(IFormCollection formsCollection, List<WildcardMatcher> wildcardMatchers)
+		private static string BuildBodyStringFromIFormCollection(IFormCollection formsCollection, IConfigurationReader configReader)
 		{
 			var sb = new StringBuilder();
 
@@ -127,7 +128,7 @@ namespace Elastic.Apm.AspNetCore.Extensions
 				newItem.Append(form.Key);
 				newItem.Append("=");
 
-				newItem.Append(WildcardMatcher.IsAnyMatch(wildcardMatchers, form.Key) ? "[REDACTED]" : form.Value.ToString());
+				newItem.Append(WildcardMatcher.IsAnyMatch(configReader.SanitizeFieldNames, form.Key) ? "[REDACTED]" : form.Value.ToString());
 
 				if (newItem.Length <= Consts.RequestBodyMaxLength)
 					sb.Append(newItem);

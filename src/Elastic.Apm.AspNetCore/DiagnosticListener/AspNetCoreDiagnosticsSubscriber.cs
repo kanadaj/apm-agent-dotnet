@@ -11,17 +11,13 @@ namespace Elastic.Apm.AspNetCore.DiagnosticListener
 	/// </summary>
 	public class AspNetCoreDiagnosticsSubscriber : IDiagnosticsSubscriber
 	{
-		private readonly List<WildcardMatcher> _matcherList;
-
-		internal AspNetCoreDiagnosticsSubscriber(List<WildcardMatcher> matcherList) => _matcherList = matcherList;
-
 		/// <summary>
 		/// Start listening for ASP.NET Core related diagnostic source events.
 		/// </summary>
 		public IDisposable Subscribe(IApmAgent agent)
 		{
 			var retVal = new CompositeDisposable();
-			var subscriber = new DiagnosticInitializer(agent.Logger, new[] { new AspNetCoreDiagnosticListener(agent, _matcherList) });
+			var subscriber = new DiagnosticInitializer(agent.Logger, new[] { new AspNetCoreDiagnosticListener(agent) });
 			retVal.Add(subscriber);
 
 			retVal.Add(System.Diagnostics.DiagnosticListener

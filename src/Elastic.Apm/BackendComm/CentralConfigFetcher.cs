@@ -404,7 +404,7 @@ namespace Elastic.Apm.BackendComm
 			public int MaxQueueEventCount => _wrapped.MaxQueueEventCount;
 
 			public double MetricsIntervalInMilliseconds => _wrapped.MetricsIntervalInMilliseconds;
-			public List<string> SanitizeFieldNames => _wrapped.SanitizeFieldNames;
+			public IReadOnlyList<WildcardMatcher> SanitizeFieldNames => _wrapped.SanitizeFieldNames;
 
 			public string SecretToken => _wrapped.SecretToken;
 

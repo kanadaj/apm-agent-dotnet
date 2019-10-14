@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Elastic.Apm.Config;
+using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
 
 namespace Elastic.Apm.Tests.Mocks
@@ -94,7 +95,7 @@ namespace Elastic.Apm.Tests.Mocks
 		public int MaxBatchEventCount => ParseMaxBatchEventCount(Kv(ConfigConsts.EnvVarNames.MaxBatchEventCount, _maxBatchEventCount, Origin));
 		public int MaxQueueEventCount => ParseMaxQueueEventCount(Kv(ConfigConsts.EnvVarNames.MaxQueueEventCount, _maxQueueEventCount, Origin));
 		public double MetricsIntervalInMilliseconds => ParseMetricsInterval(Kv(ConfigConsts.EnvVarNames.MetricsInterval, _metricsInterval, Origin));
-		public List<string> SanitizeFieldNames => ParseSanitizeFieldNames(Kv(ConfigConsts.EnvVarNames.SanitizeFieldNames, _sanitizeFieldNames, Origin));
+		public IReadOnlyList<WildcardMatcher> SanitizeFieldNames => ParseSanitizeFieldNames(Kv(ConfigConsts.EnvVarNames.SanitizeFieldNames, _sanitizeFieldNames, Origin));
 		public string SecretToken => ParseSecretToken(Kv(ConfigConsts.EnvVarNames.SecretToken, _secretToken, Origin));
 		public IReadOnlyList<Uri> ServerUrls => ParseServerUrls(Kv(ConfigConsts.EnvVarNames.ServerUrls, _serverUrls, Origin));
 		public string ServiceName => ParseServiceName(Kv(ConfigConsts.EnvVarNames.ServiceName, _serviceName, Origin));
