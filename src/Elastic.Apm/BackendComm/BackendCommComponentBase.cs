@@ -46,17 +46,17 @@ namespace Elastic.Apm.BackendComm
 
 			_disposableHelper = new DisposableHelper();
 
-			_loopStarted = new ManualResetEventSlim();
+			//_loopStarted = new ManualResetEventSlim();
 			_loopCompleted = new ManualResetEventSlim();
 
 			HttpClientInstance = BackendCommUtils.BuildHttpClient(logger, config, service, _dbgName, httpMessageHandler);
 
-			_singleThreadTaskScheduler = new SingleThreadTaskScheduler($"ElasticApm{dbgDerivedClassName}", logger);
+			//_singleThreadTaskScheduler = new SingleThreadTaskScheduler($"ElasticApm{dbgDerivedClassName}", logger);
 		}
 
 		protected abstract Task WorkLoopIteration();
 
-		internal bool IsRunning => _singleThreadTaskScheduler.IsRunning;
+		internal bool IsRunning => true;//_singleThreadTaskScheduler.IsRunning;
 
 		private void PostToInternalTaskScheduler(string dbgActionDesc, Func<Task> asyncAction
 			, TaskCreationOptions taskCreationOptions = TaskCreationOptions.None
@@ -65,7 +65,7 @@ namespace Elastic.Apm.BackendComm
 #pragma warning disable 4014
 			// We don't pass any CancellationToken on purpose because in some case (for example work loop)
 			// we wait for asyncAction to start so we should never cancel it before it starts
-			Task.Factory.StartNew(asyncAction, CancellationToken.None, taskCreationOptions, _singleThreadTaskScheduler);
+			Task.Factory.StartNew(asyncAction, CancellationToken.None /*, taskCreationOptions, _singleThreadTaskScheduler */);
 #pragma warning restore 4014
 			_logger.Debug()?.Log("Posted {DbgTaskDesc} to internal task scheduler", dbgActionDesc);
 		}
@@ -75,14 +75,14 @@ namespace Elastic.Apm.BackendComm
 			PostToInternalTaskScheduler("Work loop", WorkLoop, TaskCreationOptions.LongRunning);
 
 			_logger.Debug()?.Log("Waiting for work loop started event...");
-			_loopStarted.Wait();
+			//_loopStarted.Wait();
 			_logger.Debug()?.Log("Work loop started signaled");
 		}
 
 		private async Task WorkLoop()
 		{
 			_logger.Debug()?.Log("Signaling work loop started event...");
-			_loopStarted.Set();
+			//_loopStarted.Set();
 
 			await ExceptionUtils.DoSwallowingExceptions(_logger, async () =>
 				{

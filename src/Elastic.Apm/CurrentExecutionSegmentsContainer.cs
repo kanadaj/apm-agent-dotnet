@@ -4,21 +4,22 @@
 
 using System.Threading;
 using Elastic.Apm.Model;
+using Elastic.Apm.Api;
 
 namespace Elastic.Apm
 {
 	internal sealed class CurrentExecutionSegmentsContainer : ICurrentExecutionSegmentsContainer
 	{
-		private readonly AsyncLocal<Span> _currentSpan = new AsyncLocal<Span>();
-		private readonly AsyncLocal<Transaction> _currentTransaction = new AsyncLocal<Transaction>();
+		private readonly AsyncLocal<ISpan> _currentSpan = new AsyncLocal<ISpan>();
+		private readonly AsyncLocal<ITransaction> _currentTransaction = new AsyncLocal<ITransaction>();
 
-		public Span CurrentSpan
+		public ISpan CurrentSpan
 		{
 			get => _currentSpan.Value;
 			set => _currentSpan.Value = value;
 		}
 
-		public Transaction CurrentTransaction
+		public ITransaction CurrentTransaction
 		{
 			get => _currentTransaction.Value;
 			set => _currentTransaction.Value = value;

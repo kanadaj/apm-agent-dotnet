@@ -203,7 +203,7 @@ namespace Elastic.Apm.Model
 		public Context Context => _context.Value;
 
 		[JsonIgnore]
-		public Dictionary<string, string> Custom => Context.Custom;
+		public Dictionary<string, string> Custom { get; } //=> Context.Custom;
 
 		/// <inheritdoc />
 		/// <summary>
@@ -287,6 +287,8 @@ namespace Elastic.Apm.Model
 			_logger?.Debug()?.Log("Setting ParentId to transaction, {transaction}", this);
 			return ParentId;
 		}
+
+		public Dictionary<string, Dictionary<string, int>> Marks { get; } = new Dictionary<string, Dictionary<string, int>>();
 
 		/// <summary>
 		/// Method to conditionally serialize <see cref="Context" /> because context should be serialized only when the transaction

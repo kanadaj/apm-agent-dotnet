@@ -32,6 +32,7 @@ namespace Elastic.Apm.Report
 		private const string ThisClassName = nameof(PayloadSenderV2);
 
 		internal readonly Api.System System;
+		private readonly RumMetadata _rumMetadata;
 
 		private readonly BatchBlock<object> _eventQueue;
 
@@ -49,18 +50,27 @@ namespace Elastic.Apm.Report
 		internal readonly List<Func<IError, IError>> ErrorFilters = new List<Func<IError, IError>>();
 
 		public PayloadSenderV2(IApmLogger logger, IConfigSnapshot config, Service service, Api.System system,
-			HttpMessageHandler httpMessageHandler = null, string dbgName = null
+			HttpMessageHandler httpMessageHandler = null, string dbgName = null, RumService rumService = null
 		)
 			: base( /* isEnabled: */ true, logger, ThisClassName, service, config, httpMessageHandler)
 		{
 			_logger = logger?.Scoped(ThisClassName + (dbgName == null ? "" : $" (dbgName: `{dbgName}')"));
 			_payloadItemSerializer = new PayloadItemSerializer(config);
 
-			_intakeV2EventsAbsoluteUrl = BackendCommUtils.ApmServerEndpoints.BuildIntakeV2EventsAbsoluteUrl(config.ServerUrls.First());
+			if(service != null)
+				_intakeV2EventsAbsoluteUrl = BackendCommUtils.ApmServerEndpoints.BuildIntakeV2EventsAbsoluteUrl(config.ServerUrls.First());
+
+			if(rumService != null)
+				_intakeV2RumEventsAbsoluteUrl =  BackendCommUtils.ApmServerEndpoints.BuildIntakeV2RumEventsAbsoluteUrl(config.ServerUrls.First());
 
 			System = system;
 
-			_metadata = new Metadata { Service = service, System = System };
+			if (rumService != null)
+				_rumMetadata = new RumMetadata { RumService = rumService };
+
+			if(service != null)
+				_metadata = new Metadata { Service = service, System = System };
+
 			foreach (var globalLabelKeyValue in config.GlobalLabels) _metadata.Labels.Add(globalLabelKeyValue.Key, globalLabelKeyValue.Value);
 
 			if (config.MaxQueueEventCount < config.MaxBatchEventCount)
@@ -96,6 +106,7 @@ namespace Elastic.Apm.Report
 		private string _cachedMetadataJsonLine;
 
 		private long _eventQueueCount;
+		private readonly Uri _intakeV2RumEventsAbsoluteUrl;
 
 		public void QueueTransaction(ITransaction transaction) => EnqueueEvent(transaction, "Transaction");
 
@@ -216,15 +227,30 @@ namespace Elastic.Apm.Report
 			try
 			{
 				var ndjson = new StringBuilder();
-				if (_cachedMetadataJsonLine == null)
-					_cachedMetadataJsonLine = "{\"metadata\": " + _payloadItemSerializer.SerializeObject(_metadata) + "}";
-				ndjson.AppendLine(_cachedMetadataJsonLine);
+				if (_metadata != null)
+				{
+					if (_cachedMetadataJsonLine == null)
+						_cachedMetadataJsonLine = "{\"metadata\": " + _payloadItemSerializer.SerializeObject(_metadata) + "}";
+					ndjson.AppendLine(_cachedMetadataJsonLine);
+				}
+				else //RUM Service
+				{
+					if (_cachedMetadataJsonLine == null)
+						_cachedMetadataJsonLine = "{\"metadata\": " + _payloadItemSerializer.SerializeObject(_rumMetadata) + "}";
+					ndjson.AppendLine(_cachedMetadataJsonLine);
+				}
 
 				// Apply filters
 				foreach (var item in queueItems)
 				{
 					switch (item)
 					{
+						case RumSpan rumSpan:
+							if (TryExecuteFilter(SpanFilters, rumSpan) != null) SerializeAndSend(item, "span");
+							break;
+						case RumTransaction rumTransaction:
+							if (TryExecuteFilter(TransactionFilters, rumTransaction) != null) SerializeAndSend(item, "transaction");
+							break;
 						case Transaction transaction:
 							if (TryExecuteFilter(TransactionFilters, transaction) != null) SerializeAndSend(item, "transaction");
 							break;
@@ -242,7 +268,11 @@ namespace Elastic.Apm.Report
 
 				var content = new StringContent(ndjson.ToString(), Encoding.UTF8, "application/x-ndjson");
 
-				var result = await HttpClientInstance.PostAsync(_intakeV2EventsAbsoluteUrl, content, CtsInstance.Token);
+				HttpResponseMessage result = null;
+				if(_metadata != null)
+					result = await HttpClientInstance.PostAsync(_intakeV2EventsAbsoluteUrl, content, CtsInstance.Token);
+				else
+					result = await HttpClientInstance.PostAsync(_intakeV2RumEventsAbsoluteUrl, content, CtsInstance.Token);
 
 				if (result != null && !result.IsSuccessStatusCode)
 				{
@@ -308,6 +338,26 @@ namespace Elastic.Apm.Report
 				return item;
 			}
 		}
+	}
+
+	internal class RumMetadata
+	{
+		//[JsonConverter(typeof(LabelsJsonConverter))]
+		//public Dictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
+
+		// ReSharper disable once UnusedAutoPropertyAccessor.Global - used by Json.Net
+		[JsonProperty("service")]
+		public RumService RumService { get; set; }
+
+		// ReSharper disable once UnusedAutoPropertyAccessor.Global
+		//public Api.System System { get; set; }
+
+		/// <summary>
+		/// Method to conditionally serialize <see cref="Labels" /> - serialize only when there is at least one label.
+		/// See
+		/// <a href="https://www.newtonsoft.com/json/help/html/ConditionalProperties.htm">the relevant Json.NET Documentation</a>
+		/// </summary>
+		//public bool ShouldSerializeLabels() => !Labels.IsEmpty();
 	}
 
 	internal class Metadata

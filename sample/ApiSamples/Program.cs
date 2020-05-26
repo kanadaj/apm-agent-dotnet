@@ -6,6 +6,7 @@ using System;
 #if NETCOREAPP3_0
 using System.Collections.Generic;
 #endif
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using Elastic.Apm;
@@ -14,12 +15,14 @@ using Elastic.Apm.Api;
 namespace ApiSamples
 {
 	/// <summary>
-	/// This class exercices the Public Agent API.
+	/// This class exercises the Public Agent API.
 	/// </summary>
 	internal class Program
 	{
 		private static void Main(string[] args)
 		{
+			RumSample();
+			return;
 			if (args.Length == 1) //in case it's started with an argument we try to parse the argument as a DistributedTracingData
 			{
 				WriteLineToConsole($"Callee process started - continuing trace with distributed tracing data: {args[0]}");
@@ -50,6 +53,30 @@ namespace ApiSamples
 				WriteLineToConsole("About to exit - press any key...");
 				Console.ReadKey();
 			}
+		}
+
+		public static void RumSample()
+		{
+			Agent.Setup( AgentComponents.RumAgentComponents());
+
+			var transaction = Agent.Tracer.StartTransaction("test", "rumTest");
+
+			Thread.Sleep(200);
+
+			var span = transaction.StartSpan("testSpan", "rumTestSpan");
+
+			Thread.Sleep(150);
+
+			span.End();
+
+			transaction.Marks.Add("agent", new Dictionary<string, int>{{"dotNetMark", 150}});
+
+			Thread.Sleep(300);
+
+			transaction.End();
+
+			Console.WriteLine("Sample finished");
+			Console.ReadKey();
 		}
 
 		public static void SampleCustomTransaction()
@@ -157,6 +184,8 @@ namespace ApiSamples
 			try
 			{
 				Thread.Sleep(300);
+
+				transaction.Marks.Add("agent", new Dictionary<string, int>{{"MyDotNetStuff", 140}});
 
 				//We start the sample app again with a new service name and we pass DistributedTracingData to it
 				//In the main method we check for this and continue the trace.

@@ -1,0 +1,46 @@
+﻿@page "/counter"
+@using Elastic.Apm.Api
+@using Elastic.Apm
+@using Elastic.Apm.DiagnosticSource
+
+
+
+<h1>Counter</h1>
+
+<p>Current count: @currentCount</p>
+
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+
+	protected override void OnInitialized()
+	{
+		if(!Agent.IsConfigured)
+		{
+			Agent.Setup(AgentComponents.RumAgentComponents());
+			Agent.Subscribe(new HttpDiagnosticsSubscriber());
+		}
+
+		_transaction = Agent.Tracer.StartTransaction("Counter_Component", "Component");
+	}
+
+	protected override void OnParametersSet()
+	{
+		//_transaction?.Marks.Add(new Dictionary<string, Dictionary<string, int>>{ {"agent", new Dictionary<string, int>(){"sdfdf", 12}} }  );
+	}
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		base.OnAfterRender(firstRender);
+		_transaction?.End();
+	}
+
+	ITransaction _transaction;
+	private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+	    currentCount++;
+    }
+}

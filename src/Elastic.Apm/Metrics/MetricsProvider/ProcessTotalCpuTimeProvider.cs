@@ -65,6 +65,9 @@ namespace Elastic.Apm.Metrics.MetricsProvider
 
 			double cpuUsedMs;
 
+			var vv2 = RuntimeInformation.FrameworkDescription;
+			var vv =  Environment.Version;
+
 			//workaround for a CoreFx bug. See: https://github.com/dotnet/corefx/issues/37614#issuecomment-492489373
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && _processAssemblyVersion < new Version(4, 3, 0))
 				cpuUsedMs = (cpuUsage - _lastCurrentProcessCpuTime).TotalMilliseconds / 100;

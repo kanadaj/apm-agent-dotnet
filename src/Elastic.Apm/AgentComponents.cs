@@ -52,6 +52,36 @@ namespace Elastic.Apm
 				currentExecutionSegmentsContainer ?? new CurrentExecutionSegmentsContainer());
 		}
 
+		 internal AgentComponents(bool isForRum)
+		 {
+		 	var tempLogger = new ConsoleLogger(LogLevel.Trace);
+		 	ConfigurationReader = new EnvironmentConfigurationReader(tempLogger);
+		 	Logger = ConsoleLogger.LoggerOrDefault(LogLevel.Trace);
+		 	//Service = Service.GetDefaultService(ConfigurationReader, Logger);
+
+		 	var systemInfoHelper = new SystemInfoHelper(Logger);
+		 	var system = systemInfoHelper.ParseSystemInfo();
+
+		 	var rumService = new RumService()
+		 	{
+		 		Agent = new RumAgent { Name = "C# RUM Agent", Version = "0.1" },
+		 		Framework = new RumFramework { Name = "TestFw", Version = "0.1" },
+		 		Name = "MySampleRumService"
+		 	};
+
+		 	ConfigStore = new ConfigStore(new ConfigSnapshotFromReader(ConfigurationReader, "local"), Logger);
+
+		 	PayloadSender = new PayloadSenderV2(Logger, ConfigStore.CurrentSnapshot, Service, system, rumService: rumService);
+
+		 	// MetricsCollector = new MetricsCollector(Logger, PayloadSender, ConfigurationReader);
+		 	// MetricsCollector.StartCollecting();
+
+		 	//CentralConfigFetcher = new CentralConfigFetcher(Logger, ConfigStore, Service);
+		 	RumTracerInternal = new RumTracer(Logger, rumService, PayloadSender, ConfigStore, new CurrentExecutionSegmentsContainer());
+		 }
+
+		public static AgentComponents RumAgentComponents() => new AgentComponents(true);
+
 		internal ICentralConfigFetcher CentralConfigFetcher { get; }
 
 		internal IConfigStore ConfigStore { get; }
@@ -71,9 +101,22 @@ namespace Elastic.Apm
 		/// <value>The service.</value>
 		public Service Service { get; }
 
-		public ITracer Tracer => TracerInternal;
+		public ITracer Tracer
+		{
+			get
+			{
+				if (TracerInternal != null)
+					return TracerInternal;
+				if (RumTracerInternal != null)
+					return RumTracerInternal;
+
+				return null;
+			}
+		}
 
 		internal Tracer TracerInternal { get; }
+
+		internal RumTracer RumTracerInternal { get; }
 
 		public void Dispose()
 		{

@@ -50,5 +50,7 @@ namespace Elastic.Apm.Api
 		/// existing one.
 		/// </returns>
 		string EnsureParentId();
+
+		Dictionary<string, Dictionary<string, int>> Marks { get;  }
 	}
 }

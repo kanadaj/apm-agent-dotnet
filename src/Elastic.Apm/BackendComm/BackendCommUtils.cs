@@ -36,6 +36,9 @@ namespace Elastic.Apm.BackendComm
 			internal static Uri BuildIntakeV2EventsAbsoluteUrl(Uri baseUrl) =>
 				CombineAbsoluteAndRelativeUrls(baseUrl, "intake/v2/events");
 
+			internal static Uri BuildIntakeV2RumEventsAbsoluteUrl(Uri baseUrl) =>
+				CombineAbsoluteAndRelativeUrls(baseUrl, "intake/v2/rum/events");
+
 			/// <summary>
 			/// Builds the absolute URL that points to APM server's central-config API endpoint which is used by agents to fetch configuration.
 			/// Configuration is selected by the backend based on the agent's service.name and service.environment.
@@ -43,19 +46,31 @@ namespace Elastic.Apm.BackendComm
 			/// <param name="baseUrl">Absolute URL pointing to APM Server's base for API endpoints.</param>
 			/// <param name="service">Service info to pass to APM Server.
 			/// service.name and service.environment are URL encoded in the returned URL.</param>
-			internal static Uri BuildGetConfigAbsoluteUrl(Uri baseUrl, Service service)
+			internal static Uri BuildGetConfigAbsoluteUrl(Uri baseUrl, Service service, RumService rumService)
 			{
 				var strBuilder = new StringBuilder("config/v1/agents");
 				var prefix = '?';
 
-				if (service.Name != null)
+				if (service != null)
 				{
-					strBuilder.Append(prefix).Append($"service.name={UrlEncode(service.Name)}");
-					prefix = '&';
+					if (service.Name != null)
+					{
+						strBuilder.Append(prefix).Append($"service.name={UrlEncode(service.Name)}");
+						prefix = '&';
+					}
+
+					if (service.Environment != null)
+						strBuilder.Append(prefix).Append($"service.environment={UrlEncode(service.Environment)}");
 				}
 
-				if (service.Environment != null)
-					strBuilder.Append(prefix).Append($"service.environment={UrlEncode(service.Environment)}");
+				if (rumService != null)
+				{
+					// if (rumService.Name != null)
+					// {
+					// 	strBuilder.Append(prefix).Append($"service.name={UrlEncode(service.Name)}");
+					// 	prefix = '&';
+					// }
+				}
 
 				return CombineAbsoluteAndRelativeUrls(baseUrl, /* relativeUri: */ strBuilder.ToString());
 			}
@@ -108,7 +123,7 @@ namespace Elastic.Apm.BackendComm
 							+ "Unless you notice connection issues between the APM Server and the agent, no action needed.");
 				}
 
-				servicePoint.ConnectionLimit = 20;
+				//servicePoint.ConnectionLimit = 20;
 			});
 
 		private static HttpClientHandler CreateHttpClientHandler(bool verifyServerCert, IApmLogger logger)
@@ -121,7 +136,7 @@ namespace Elastic.Apm.BackendComm
 				return !verifyServerCert;
 			}
 
-			return new HttpClientHandler { ServerCertificateCustomValidationCallback = ServerCertificateCustomValidationCallback };
+			return new HttpClientHandler { /*ServerCertificateCustomValidationCallback = ServerCertificateCustomValidationCallback */ };
 		}
 
 		internal static HttpClient BuildHttpClient(IApmLogger loggerArg, IConfigSnapshot config, Service service, string dbgCallerDesc
@@ -138,21 +153,26 @@ namespace Elastic.Apm.BackendComm
 					, serverUrlBase, dbgCallerDesc);
 			var httpClient =
 				new HttpClient(httpMessageHandler ?? CreateHttpClientHandler(config.VerifyServerCert, loggerArg)) { BaseAddress = serverUrlBase };
-			httpClient.DefaultRequestHeaders.UserAgent.Add(
-				new ProductInfoHeaderValue($"elasticapm-{Consts.AgentName}", AdaptUserAgentValue(service.Agent.Version)));
-			httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("System.Net.Http",
-				AdaptUserAgentValue(typeof(HttpClient).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version)));
 
-			if (service.Runtime != null)
-			{
-				httpClient.DefaultRequestHeaders.UserAgent.Add(
-					new ProductInfoHeaderValue(AdaptUserAgentValue(service.Runtime.Name), AdaptUserAgentValue(service.Runtime.Version)));
-			}
+			// httpClient.DefaultRequestHeaders.UserAgent.Add(
+			// 	new ProductInfoHeaderValue($"elasticapm-{Consts.AgentName}", AdaptUserAgentValue(service.Agent.Version)));
+			// httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("System.Net.Http",
+			// 	AdaptUserAgentValue(typeof(HttpClient).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version)));
+			// httpClient.DefaultRequestHeaders.UserAgent.Add(
+			// 	new ProductInfoHeaderValue(AdaptUserAgentValue(service.Runtime.Name), AdaptUserAgentValue(service.Runtime.Version)));
 
 			if (config.ApiKey != null)
 				httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", config.ApiKey);
 			else if (config.SecretToken != null)
 				httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", config.SecretToken);
+
+			//check if  rum
+			// Access-Control-Allow-Headers: Content-Type
+			// Access-Control-Allow-Methods: POST, OPTIONS
+			// Access-Control-Allow-Origin: [request-origin]
+			httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Origin, Content-Type, Content-Encoding, Accept, Referer, User-Agent");
+			httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+			httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Origin", "http://localhost:5000");
 
 			return httpClient;
 
