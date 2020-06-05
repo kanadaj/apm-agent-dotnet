@@ -46,7 +46,7 @@ namespace Elastic.Apm.BackendComm
 			/// <param name="baseUrl">Absolute URL pointing to APM Server's base for API endpoints.</param>
 			/// <param name="service">Service info to pass to APM Server.
 			/// service.name and service.environment are URL encoded in the returned URL.</param>
-			internal static Uri BuildGetConfigAbsoluteUrl(Uri baseUrl, Service service, RumService rumService)
+			internal static Uri BuildGetConfigAbsoluteUrl(Uri baseUrl, Service service)
 			{
 				var strBuilder = new StringBuilder("config/v1/agents");
 				var prefix = '?';
@@ -61,15 +61,6 @@ namespace Elastic.Apm.BackendComm
 
 					if (service.Environment != null)
 						strBuilder.Append(prefix).Append($"service.environment={UrlEncode(service.Environment)}");
-				}
-
-				if (rumService != null)
-				{
-					// if (rumService.Name != null)
-					// {
-					// 	strBuilder.Append(prefix).Append($"service.name={UrlEncode(service.Name)}");
-					// 	prefix = '&';
-					// }
 				}
 
 				return CombineAbsoluteAndRelativeUrls(baseUrl, /* relativeUri: */ strBuilder.ToString());

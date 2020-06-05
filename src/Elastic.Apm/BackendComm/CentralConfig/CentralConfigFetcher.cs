@@ -32,14 +32,14 @@ namespace Elastic.Apm.BackendComm.CentralConfig
 
 		internal CentralConfigFetcher(IApmLogger logger, IConfigStore configStore, ICentralConfigResponseParser centralConfigResponseParser,
 			Service service,
-			HttpMessageHandler httpMessageHandler = null, IAgentTimer agentTimer = null, string dbgName = null, RumService rumService = null
-		) : this(logger, configStore, configStore.CurrentSnapshot, service, httpMessageHandler, agentTimer, dbgName, rumService) =>
+			HttpMessageHandler httpMessageHandler = null, IAgentTimer agentTimer = null, string dbgName = null
+		) : this(logger, configStore, configStore.CurrentSnapshot, service, httpMessageHandler, agentTimer, dbgName) =>
 			_centralConfigResponseParser = centralConfigResponseParser;
 
 		internal CentralConfigFetcher(IApmLogger logger, IConfigStore configStore, Service service
-			, HttpMessageHandler httpMessageHandler = null, IAgentTimer agentTimer = null, string dbgName = null, RumService rumService = null
+			, HttpMessageHandler httpMessageHandler = null, IAgentTimer agentTimer = null, string dbgName = null
 		)
-			: this(logger, configStore, new CentralConfigResponseParser(logger), service, httpMessageHandler, agentTimer, dbgName, rumService) { }
+			: this(logger, configStore, new CentralConfigResponseParser(logger), service, httpMessageHandler, agentTimer, dbgName) { }
 
 		/// <summary>
 		/// We need this private ctor to avoid calling configStore.CurrentSnapshot twice (and thus possibly using different
@@ -47,7 +47,7 @@ namespace Elastic.Apm.BackendComm.CentralConfig
 		/// when passing isEnabled: initialConfigSnapshot.CentralConfig and config: initialConfigSnapshot to base
 		/// </summary>
 		private CentralConfigFetcher(IApmLogger logger, IConfigStore configStore, IConfigSnapshot initialConfigSnapshot, Service service
-			, HttpMessageHandler httpMessageHandler, IAgentTimer agentTimer, string dbgName, RumService rumService = null
+			, HttpMessageHandler httpMessageHandler, IAgentTimer agentTimer, string dbgName
 		)
 			: base( /* isEnabled: */ initialConfigSnapshot.CentralConfig, logger, ThisClassName, service, initialConfigSnapshot, httpMessageHandler)
 		{
@@ -69,7 +69,7 @@ namespace Elastic.Apm.BackendComm.CentralConfig
 
 			_agentTimer = agentTimer ?? new AgentTimer();
 
-			_getConfigAbsoluteUrl = BackendCommUtils.ApmServerEndpoints.BuildGetConfigAbsoluteUrl(initialConfigSnapshot.ServerUrls.First(), service, rumService);
+			_getConfigAbsoluteUrl = BackendCommUtils.ApmServerEndpoints.BuildGetConfigAbsoluteUrl(initialConfigSnapshot.ServerUrls.First(), service);
 			_logger.Debug()
 				?.Log("Combined absolute URL for APM Server get central configuration endpoint: `{Url}'. Service: {Service}."
 					, _getConfigAbsoluteUrl, service);

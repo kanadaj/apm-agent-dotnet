@@ -23,22 +23,22 @@ namespace Elastic.Apm.BackendComm
 		private readonly string _dbgName;
 		private readonly DisposableHelper _disposableHelper;
 		private readonly bool _isEnabled;
-		private readonly IApmLogger _logger;
+		protected readonly IApmLogger Logger;
 		private readonly ManualResetEventSlim _loopCompleted;
 		private readonly ManualResetEventSlim _loopStarted;
 		private readonly SingleThreadTaskScheduler _singleThreadTaskScheduler;
 
 		internal BackendCommComponentBase(bool isEnabled, IApmLogger logger, string dbgDerivedClassName, Service service
-			, IConfigSnapshot config, HttpMessageHandler httpMessageHandler = null
+			, IConfigSnapshot config, HttpMessageHandler httpMessageHandler = null, string dbgName = null, bool useSingleThreadTaskScheduler = true
 		)
 		{
 			_dbgName = $"{ThisClassName} ({dbgDerivedClassName})";
-			_logger = logger?.Scoped(_dbgName);
+			Logger = logger?.Scoped(ThisClassName + (dbgName == null ? "" : $" (dbgName: `{dbgName}')"));
 			_isEnabled = isEnabled;
 
 			if (!_isEnabled)
 			{
-				_logger.Debug()?.Log("Disabled - exiting without initializing any members used by work loop");
+				Logger.Debug()?.Log("Disabled - exiting without initializing any members used by work loop");
 				return;
 			}
 
@@ -46,17 +46,21 @@ namespace Elastic.Apm.BackendComm
 
 			_disposableHelper = new DisposableHelper();
 
-			//_loopStarted = new ManualResetEventSlim();
-			_loopCompleted = new ManualResetEventSlim();
+			if (useSingleThreadTaskScheduler)
+			{
+				_loopStarted = new ManualResetEventSlim();
+				_singleThreadTaskScheduler = new SingleThreadTaskScheduler($"ElasticApm{dbgDerivedClassName}", logger);
+			}
 
+			_loopCompleted = new ManualResetEventSlim();
 			HttpClientInstance = BackendCommUtils.BuildHttpClient(logger, config, service, _dbgName, httpMessageHandler);
 
-			//_singleThreadTaskScheduler = new SingleThreadTaskScheduler($"ElasticApm{dbgDerivedClassName}", logger);
+
 		}
 
 		protected abstract Task WorkLoopIteration();
 
-		internal bool IsRunning => true;//_singleThreadTaskScheduler.IsRunning;
+		internal bool IsRunning => _singleThreadTaskScheduler == null || _singleThreadTaskScheduler.IsRunning;
 
 		private void PostToInternalTaskScheduler(string dbgActionDesc, Func<Task> asyncAction
 			, TaskCreationOptions taskCreationOptions = TaskCreationOptions.None
@@ -65,33 +69,39 @@ namespace Elastic.Apm.BackendComm
 #pragma warning disable 4014
 			// We don't pass any CancellationToken on purpose because in some case (for example work loop)
 			// we wait for asyncAction to start so we should never cancel it before it starts
-			Task.Factory.StartNew(asyncAction, CancellationToken.None /*, taskCreationOptions, _singleThreadTaskScheduler */);
+			if(_singleThreadTaskScheduler == null)
+				Task.Factory.StartNew(asyncAction, CancellationToken.None /*, taskCreationOptions, _singleThreadTaskScheduler */);
+			else
+				Task.Factory.StartNew(asyncAction, CancellationToken.None, taskCreationOptions, _singleThreadTaskScheduler);
 #pragma warning restore 4014
-			_logger.Debug()?.Log("Posted {DbgTaskDesc} to internal task scheduler", dbgActionDesc);
+			Logger.Debug()?.Log("Posted {DbgTaskDesc} to internal task scheduler", dbgActionDesc);
 		}
 
 		protected void StartWorkLoop()
 		{
 			PostToInternalTaskScheduler("Work loop", WorkLoop, TaskCreationOptions.LongRunning);
 
-			_logger.Debug()?.Log("Waiting for work loop started event...");
-			//_loopStarted.Wait();
-			_logger.Debug()?.Log("Work loop started signaled");
+			Logger.Debug()?.Log("Waiting for work loop started event...");
+			if(_singleThreadTaskScheduler != null)
+				_loopStarted.Wait();
+			Logger.Debug()?.Log("Work loop started signaled");
 		}
 
 		private async Task WorkLoop()
 		{
-			_logger.Debug()?.Log("Signaling work loop started event...");
-			//_loopStarted.Set();
+			Logger.Debug()?.Log("Signaling work loop started event...");
 
-			await ExceptionUtils.DoSwallowingExceptions(_logger, async () =>
+			if(_singleThreadTaskScheduler != null)
+				_loopStarted.Set();
+
+			await ExceptionUtils.DoSwallowingExceptions(Logger, async () =>
 				{
 					while (true) await WorkLoopIteration();
 					// ReSharper disable once FunctionNeverReturns
 				}
 				, dbgCallerMethodName: ThisClassName + "." + DbgUtils.CurrentMethodName());
 
-			_logger.Debug()?.Log("Signaling work loop completed event...");
+			Logger.Debug()?.Log("Signaling work loop completed event...");
 			_loopCompleted.Set();
 		}
 
@@ -99,37 +109,37 @@ namespace Elastic.Apm.BackendComm
 		{
 			if (!_isEnabled)
 			{
-				_logger.Debug()?.Log("Disabled - nothing to dispose, exiting");
+				Logger.Debug()?.Log("Disabled - nothing to dispose, exiting");
 				return;
 			}
 
-			_disposableHelper.DoOnce(_logger, _dbgName, () =>
+			_disposableHelper.DoOnce(Logger, _dbgName, () =>
 			{
-				_logger.Debug()?.Log("Posting CtsInstance.Cancel() to internal TaskScheduler...");
+				Logger.Debug()?.Log("Posting CtsInstance.Cancel() to internal TaskScheduler...");
 				Task.Run(() =>
 				{
-					_logger.Debug()?.Log("Calling CtsInstance.Cancel()...");
+					Logger.Debug()?.Log("Calling CtsInstance.Cancel()...");
 					// ReSharper disable once AccessToDisposedClosure
 					CtsInstance.Cancel();
-					_logger.Debug()?.Log("Called CtsInstance.Cancel()");
+					Logger.Debug()?.Log("Called CtsInstance.Cancel()");
 				});
-				_logger.Debug()?.Log("Posted CtsInstance.Cancel() to default (ThreadPool) TaskScheduler");
+				Logger.Debug()?.Log("Posted CtsInstance.Cancel() to default (ThreadPool) TaskScheduler");
 
-				_logger.Debug()
+				Logger.Debug()
 					?.Log("Waiting for loop to exit... Is cancellation token signaled: {IsCancellationRequested}"
 						, CtsInstance.Token.IsCancellationRequested);
 				_loopCompleted.Wait();
 
-				_logger.Debug()?.Log("Disposing _singleThreadTaskScheduler ...");
+				Logger.Debug()?.Log("Disposing _singleThreadTaskScheduler ...");
 				_singleThreadTaskScheduler.Dispose();
 
-				_logger.Debug()?.Log("Disposing HttpClientInstance...");
+				Logger.Debug()?.Log("Disposing HttpClientInstance...");
 				HttpClientInstance.Dispose();
 
-				_logger.Debug()?.Log("Disposing CtsInstance...");
+				Logger.Debug()?.Log("Disposing CtsInstance...");
 				CtsInstance.Dispose();
 
-				_logger.Debug()?.Log("Exiting...");
+				Logger.Debug()?.Log("Exiting...");
 			});
 		}
 

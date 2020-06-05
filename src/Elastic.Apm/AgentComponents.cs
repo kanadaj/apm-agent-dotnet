@@ -4,7 +4,6 @@
 
 using System;
 using Elastic.Apm.Api;
-using Elastic.Apm.BackendComm;
 using Elastic.Apm.BackendComm.CentralConfig;
 using Elastic.Apm.Config;
 using Elastic.Apm.Helpers;
@@ -28,13 +27,14 @@ namespace Elastic.Apm
 			IPayloadSender payloadSender,
 			IMetricsCollector metricsCollector,
 			ICurrentExecutionSegmentsContainer currentExecutionSegmentsContainer,
-			ICentralConfigFetcher centralConfigFetcher
+			ICentralConfigFetcher centralConfigFetcher,
+			Service service = null
 		)
 		{
 			var tempLogger = logger ?? ConsoleLogger.LoggerOrDefault(configurationReader?.LogLevel);
 			ConfigurationReader = configurationReader ?? new EnvironmentConfigurationReader(tempLogger);
 			Logger = logger ?? ConsoleLogger.LoggerOrDefault(ConfigurationReader.LogLevel);
-			Service = Service.GetDefaultService(ConfigurationReader, Logger);
+			Service = service ?? Service.GetDefaultService(ConfigurationReader, Logger);
 
 			var systemInfoHelper = new SystemInfoHelper(Logger);
 			var system = systemInfoHelper.ParseSystemInfo();
@@ -51,36 +51,6 @@ namespace Elastic.Apm
 			TracerInternal = new Tracer(Logger, Service, PayloadSender, ConfigStore,
 				currentExecutionSegmentsContainer ?? new CurrentExecutionSegmentsContainer());
 		}
-
-		 internal AgentComponents(bool isForRum)
-		 {
-		 	var tempLogger = new ConsoleLogger(LogLevel.Trace);
-		 	ConfigurationReader = new EnvironmentConfigurationReader(tempLogger);
-		 	Logger = ConsoleLogger.LoggerOrDefault(LogLevel.Trace);
-		 	//Service = Service.GetDefaultService(ConfigurationReader, Logger);
-
-		 	var systemInfoHelper = new SystemInfoHelper(Logger);
-		 	var system = systemInfoHelper.ParseSystemInfo();
-
-		 	var rumService = new RumService()
-		 	{
-		 		Agent = new RumAgent { Name = "C# RUM Agent", Version = "0.1" },
-		 		Framework = new RumFramework { Name = "TestFw", Version = "0.1" },
-		 		Name = "MySampleRumService"
-		 	};
-
-		 	ConfigStore = new ConfigStore(new ConfigSnapshotFromReader(ConfigurationReader, "local"), Logger);
-
-		 	PayloadSender = new PayloadSenderV2(Logger, ConfigStore.CurrentSnapshot, Service, system, rumService: rumService);
-
-		 	// MetricsCollector = new MetricsCollector(Logger, PayloadSender, ConfigurationReader);
-		 	// MetricsCollector.StartCollecting();
-
-		 	//CentralConfigFetcher = new CentralConfigFetcher(Logger, ConfigStore, Service);
-		 	RumTracerInternal = new RumTracer(Logger, rumService, PayloadSender, ConfigStore, new CurrentExecutionSegmentsContainer());
-		 }
-
-		public static AgentComponents RumAgentComponents() => new AgentComponents(true);
 
 		internal ICentralConfigFetcher CentralConfigFetcher { get; }
 
@@ -101,22 +71,9 @@ namespace Elastic.Apm
 		/// <value>The service.</value>
 		public Service Service { get; }
 
-		public ITracer Tracer
-		{
-			get
-			{
-				if (TracerInternal != null)
-					return TracerInternal;
-				if (RumTracerInternal != null)
-					return RumTracerInternal;
-
-				return null;
-			}
-		}
+		public ITracer Tracer => TracerInternal;
 
 		internal Tracer TracerInternal { get; }
-
-		internal RumTracer RumTracerInternal { get; }
 
 		public void Dispose()
 		{

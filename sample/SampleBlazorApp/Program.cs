@@ -22,13 +22,13 @@ namespace SampleBlazorApp
             builder.RootComponents.Add<App>("app");
 
 			DiagnosticListener.AllListeners.Subscribe(new MyListener());
-			
+
 			Console.WriteLine("Program.Main runs");
 
 
 			if(!Agent.IsConfigured)
 			{
-				Agent.Setup(AgentComponents.RumAgentComponents());
+				Agent.Setup(new RumConfig().RumAgentComponents);
 				Agent.Subscribe(new HttpDiagnosticsSubscriber());
 			}
 

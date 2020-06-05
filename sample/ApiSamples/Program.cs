@@ -57,7 +57,7 @@ namespace ApiSamples
 
 		public static void RumSample()
 		{
-			Agent.Setup( AgentComponents.RumAgentComponents());
+			Agent.Setup( new RumConfig().RumAgentComponents);
 
 			var transaction = Agent.Tracer.StartTransaction("test", "rumTest");
 
