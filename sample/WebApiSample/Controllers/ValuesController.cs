@@ -14,9 +14,16 @@ namespace WebApiSample.Controllers
 	public class ValuesController : ControllerBase
 	{
 		// GET api/values
-		[HttpGet]
+		[HttpGet()]
 		public async Task<ActionResult<IEnumerable<string>>> Get()
 		{
+			// httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Origin, Content-Type, Content-Encoding, Accept, Referer, User-Agent");
+			// httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+			// httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Origin", "http://localhost:5000");
+			// HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "");
+
+
+
 			var lastValue = "call to elastic.co: ";
 			try
 			{
@@ -31,6 +38,17 @@ namespace WebApiSample.Controllers
 
 			return new[] { "value1", "value2", lastValue };
 		}
+
+		// [HttpOptions("")]
+		// public async Task<ActionResult<IEnumerable<string>>> GetOptions()
+		// {
+		// 	HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Origin, Content-Type, Content-Encoding, Accept, Referer, User-Agent");
+		// 	HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:5000");
+		//
+		// 	HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "GET");
+		//
+		// 	return Ok();
+		// }
 
 		// GET api/values/5
 		[HttpGet("{id}")]

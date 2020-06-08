@@ -34,7 +34,18 @@ namespace SampleBlazorApp
 
 
 
-            builder.Services.AddTransient(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddTransient(sp =>
+			{
+				var httpClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+				httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Origin, Content-Type, Content-Encoding, Accept, Referer, User-Agent, traceparent");
+				httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Methods", "GET");
+				httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Origin", "*");
+
+				// HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "");
+
+				//httpClient.DefaultRequestHeaders.Add("Access-Control-Allow-Origin", "http://localhost:5050");
+				return httpClient;
+			});
 
             await builder.Build().RunAsync();
         }

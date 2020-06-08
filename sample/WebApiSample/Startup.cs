@@ -18,9 +18,21 @@ namespace WebApiSample
 		public Startup(IConfiguration configuration) => _configuration = configuration;
 
 		// This method gets called by the runtime. Use this method to add services to the container.
-		public void ConfigureServices(IServiceCollection services) =>
+		public void ConfigureServices(IServiceCollection services)
+		{
 			services.AddMvc();
 
+			services.AddCors(options =>
+			{
+				options.AddPolicy(name: "MyAllowSpecificOrigins",
+					builder =>
+					{
+						builder.WithOrigins("http://localhost:5000");
+						builder.WithHeaders("Access-Control-Allow-Headers", "Access-Control-Allow-Methods", "Access-Control-Allow-Origin", "Content-Type", "Content-Encoding", "Accept", "Referer", "User-Agent", "traceparent");
+						builder.WithMethods("GET");
+					});
+			});
+		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 #if NETCOREAPP3_0 || NETCOREAPP3_1
@@ -29,6 +41,7 @@ namespace WebApiSample
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 #endif
 		{
+			app.UseCors("MyAllowSpecificOrigins");
 			app.UseAllElasticApm(_configuration);
 			ConfigureAllExceptAgent(app);
 		}

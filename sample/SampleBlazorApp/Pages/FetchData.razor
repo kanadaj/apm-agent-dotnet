@@ -58,7 +58,7 @@ else
 	{
 		if (!Agent.IsConfigured)
 		{
-			Agent.Setup(AgentComponents.RumAgentComponents());
+			Agent.Setup(new RumConfig().RumAgentComponents);
 			Agent.Subscribe(new HttpDiagnosticsSubscriber());
 		}
 

@@ -3,7 +3,7 @@
 @using Elastic.Apm
 @using Elastic.Apm.DiagnosticSource
 
-
+@inject HttpClient Http
 
 <h1>Counter</h1>
 
@@ -18,7 +18,7 @@
 	{
 		if(!Agent.IsConfigured)
 		{
-			Agent.Setup(AgentComponents.RumAgentComponents());
+			Agent.Setup(new RumConfig().RumAgentComponents);
 			Agent.Subscribe(new HttpDiagnosticsSubscriber());
 		}
 
@@ -39,8 +39,23 @@
 	ITransaction _transaction;
 	private int currentCount = 0;
 
-    private void IncrementCount()
+    private async Task IncrementCount()
     {
-	    currentCount++;
+	//  var res = await Http.GetAsync("http://localhost:5050/api/Values");
+	    var nt = Agent.Tracer.StartTransaction("IncrementCount", "Component");
+	    try
+	    {
+		    var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5050/api/Values");
+		    request.Headers.Add("traceparent", nt?.OutgoingDistributedTracingData.SerializeToString());
+		    var res = await Http.SendAsync(request);
+		    var stringRes = await res.Content.ReadAsStringAsync();
+		    Console.WriteLine(stringRes);
+		    currentCount++;
+		    nt.End();
+	    }
+	    finally
+	    {
+		   
+	    }
     }
 }
