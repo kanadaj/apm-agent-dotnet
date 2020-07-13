@@ -20,6 +20,10 @@ namespace ApiSamples
 	{
 		private static void Main(string[] args)
 		{
+			Environment.SetEnvironmentVariable("ELASTIC_APM_LOG_LEVEL", "TRACE");
+			Agent.Tracer.CaptureError("bamm", "MyCulprit");
+
+			Console.ReadKey();
 			if (args.Length == 1) //in case it's started with an argument we try to parse the argument as a DistributedTracingData
 			{
 				WriteLineToConsole($"Callee process started - continuing trace with distributed tracing data: {args[0]}");

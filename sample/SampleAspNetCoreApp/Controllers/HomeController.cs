@@ -15,6 +15,7 @@ using Elastic.Apm.Api;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SampleAspNetCoreApp.Data;
@@ -26,8 +27,13 @@ namespace SampleAspNetCoreApp.Controllers
 	{
 		public const string PostResponseBody = "somevalue";
 		private readonly SampleDataContext _sampleDataContext;
+		private readonly ILogger<HomeController> _logger;
 
-		public HomeController(SampleDataContext sampleDataContext) => _sampleDataContext = sampleDataContext;
+		public HomeController(SampleDataContext sampleDataContext, ILogger<HomeController> logger)
+		{
+			_sampleDataContext = sampleDataContext;
+			_logger = logger;
+		}
 
 		private bool GetCaptureControllerActionAsSpanFromQueryString()
 		{
@@ -176,7 +182,7 @@ namespace SampleAspNetCoreApp.Controllers
 		{
 			_sampleDataContext.Database.Migrate();
 			var model = _sampleDataContext.SampleTable.Select(item => item.Name).ToList();
-			var str =  string.Join(",", model.ToArray());
+			var str = string.Join(",", model.ToArray());
 
 			if (Agent.Tracer.CurrentTransaction != null) Agent.Tracer.CurrentTransaction.CaptureSpan("SampleSpan", "PerfBenchmark", () => { });
 
@@ -215,7 +221,11 @@ namespace SampleAspNetCoreApp.Controllers
 		}
 
 		[ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-		public IActionResult Error() => View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+		public IActionResult Error()
+		{
+			_logger.LogError("Error captured in /home/error");
+			return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+		}
 
 		[HttpPost]
 		[Route("api/Home/Post")]

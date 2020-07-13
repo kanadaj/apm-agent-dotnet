@@ -2,6 +2,7 @@
 // Elasticsearch B.V licenses this file to you under the Apache 2.0 License.
 // See the LICENSE file in the project root for more information
 
+using System.Collections.Generic;
 using Elastic.Apm.Api;
 using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
@@ -19,6 +20,28 @@ namespace Elastic.Apm.Model
 
 			Exception = capturedException;
 
+			TraceId = transaction?.TraceId;
+			TransactionId = transaction?.Id;
+			ParentId = parentId;
+
+			if(transaction != null)
+				Transaction = new TransactionData(transaction.IsSampled, transaction.Type);
+
+			if (transaction != null && transaction.IsSampled) Context = transaction.Context;
+
+			IApmLogger logger = loggerArg?.Scoped($"{nameof(Error)}.{Id}");
+			logger.Trace()
+				?.Log("New Error instance created: {Error}. Time: {Time} (as timestamp: {Timestamp})",
+					this, TimeUtils.FormatTimestampForLog(Timestamp), Timestamp);
+		}
+
+		public Error(LogOnError logOnError, Transaction transaction, string parentId, IApmLogger loggerArg)
+		{
+			Timestamp = TimeUtils.TimestampNow();
+			Id = RandomGenerator.GenerateRandomBytesAsString(new byte[16]);
+
+			Log = logOnError;
+
 			TraceId = transaction.TraceId;
 			TransactionId = transaction.Id;
 			ParentId = parentId;
@@ -30,6 +53,7 @@ namespace Elastic.Apm.Model
 			logger.Trace()
 				?.Log("New Error instance created: {Error}. Time: {Time} (as timestamp: {Timestamp})",
 					this, TimeUtils.FormatTimestampForLog(Timestamp), Timestamp);
+
 		}
 
 		// This constructor is meant for serialization
@@ -80,13 +104,15 @@ namespace Elastic.Apm.Model
 		[JsonProperty("transaction_id")]
 		public string TransactionId { get; set; }
 
+		public LogOnError Log { get; set; }
+
 		/// <summary>
 		/// Method to conditionally serialize <see cref="Context" /> because context should be serialized only when the transaction
 		/// is sampled.
 		/// See
 		/// <a href="https://www.newtonsoft.com/json/help/html/ConditionalProperties.htm">the relevant Json.NET Documentation</a>
 		/// </summary>
-		public bool ShouldSerializeContext() => Transaction.IsSampled;
+		public bool ShouldSerializeContext() => Transaction != null && Transaction.IsSampled;
 
 		public override string ToString() => new ToStringBuilder(nameof(Error))
 		{
@@ -111,5 +137,36 @@ namespace Elastic.Apm.Model
 			public override string ToString() =>
 				new ToStringBuilder(nameof(TransactionData)) { { "IsSampled", IsSampled }, { "Type", Type } }.ToString();
 		}
+	}
+
+	internal class LogOnError
+	{
+		/// <summary>
+		/// A parametrized message. E.g. 'Could not connect to %s'. The property message is still required, and should be equal
+		/// to the param_message, but with placeholders replaced. In some situations the param_message is used to group errors together.
+		/// The string is not interpreted, so feel free to use whichever placeholders makes sense in the client languange."
+		/// </summary>
+		[JsonProperty("param_message")]
+		public string ParamMessage { get; set; }
+		/// <summary>
+		/// The additionally logged error message.
+		/// </summary>
+		public string Message { get; set; }
+
+		/// <summary>
+		/// The name of the logger instance used.
+		/// </summary>
+		[JsonProperty("logger_name")]
+		public string LoggerName { get; set; }
+
+		/// <summary>
+		/// The severity of the record.
+		/// </summary>
+		public string Level { get; set; }
+
+		public List<CapturedStackFrame> StackTrace { get; set; }
+
+		public LogOnError(string message)
+		=> Message = message;
 	}
 }

@@ -12,6 +12,7 @@ using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
 using Elastic.Apm.Report;
 using Elastic.Apm.Report.Serialization;
+using Microsoft.Diagnostics.Tracing.Parsers.MicrosoftWindowsTCPIP;
 using Newtonsoft.Json;
 
 namespace Elastic.Apm.Model
@@ -378,6 +379,18 @@ namespace Elastic.Apm.Model
 				message,
 				culprit,
 				frames,
+				_sender,
+				_logger,
+				this,
+				ConfigSnapshot,
+				this,
+				parentId
+			);
+
+
+		internal void CaptureLogError(LogOnError logOnError, string parentId = null)
+			=> ExecutionSegmentCommon.CaptureLogError(
+				logOnError,
 				_sender,
 				_logger,
 				this,

@@ -1,6 +1,7 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2050
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30225.117
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3734A52F-2222-454B-BF58-1BA5C1F29D77}"
 	ProjectSection(SolutionItems) = preProject
@@ -82,6 +83,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetFullFrameworkSampleApp", "sample\AspNetFullFrameworkSampleApp\AspNetFullFrameworkSampleApp.csproj", "{C45DCD78-7E8A-437C-ABBB-01D154ABCFC4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Elastic.Apm.AspNetFullFramework", "src\Elastic.Apm.AspNetFullFramework\Elastic.Apm.AspNetFullFramework.csproj", "{7A2EEC30-A6CD-452D-B938-AD25224ABE79}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elastic.Apm.Extensions.Logging", "src\Elastic.Apm.Extensions.Logging\Elastic.Apm.Extensions.Logging.csproj", "{E69E1AF3-A8A4-4624-AAA6-1FCC80D68409}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -192,6 +195,10 @@ Global
 		{7A2EEC30-A6CD-452D-B938-AD25224ABE79}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A2EEC30-A6CD-452D-B938-AD25224ABE79}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A2EEC30-A6CD-452D-B938-AD25224ABE79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E69E1AF3-A8A4-4624-AAA6-1FCC80D68409}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E69E1AF3-A8A4-4624-AAA6-1FCC80D68409}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E69E1AF3-A8A4-4624-AAA6-1FCC80D68409}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E69E1AF3-A8A4-4624-AAA6-1FCC80D68409}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -222,6 +229,7 @@ Global
 		{36E2E2DA-2772-417C-AE39-91A34CBF8B41} = {3C791D9C-6F19-4F46-B367-2EC0F818762D}
 		{C45DCD78-7E8A-437C-ABBB-01D154ABCFC4} = {3C791D9C-6F19-4F46-B367-2EC0F818762D}
 		{7A2EEC30-A6CD-452D-B938-AD25224ABE79} = {3734A52F-2222-454B-BF58-1BA5C1F29D77}
+		{E69E1AF3-A8A4-4624-AAA6-1FCC80D68409} = {3734A52F-2222-454B-BF58-1BA5C1F29D77}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {69E02FD9-C9DE-412C-AB6B-5B8BECC6BFA5}

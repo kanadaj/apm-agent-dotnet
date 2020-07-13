@@ -321,6 +321,17 @@ namespace Elastic.Apm.Model
 				parentId ?? (ShouldBeSentToApmServer ? null : _enclosingTransaction.Id)
 			);
 
+		public void CaptureLogError(LogOnError logOnError, string parentId = null)
+			=> ExecutionSegmentCommon.CaptureLogError(
+				logOnError,
+				_payloadSender,
+				_logger,
+				this,
+				ConfigSnapshot,
+				_enclosingTransaction,
+				parentId ?? (ShouldBeSentToApmServer ? null : _enclosingTransaction.Id)
+			);
+
 		private void DeduceDestination()
 		{
 			if (!_context.IsValueCreated) return;

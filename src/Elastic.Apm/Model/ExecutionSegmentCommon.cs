@@ -254,5 +254,21 @@ namespace Elastic.Apm.Model
 				_ => null
 			};
 		}
+
+		internal static void CaptureLogError(LogOnError logOnError, IPayloadSender payloadSender, IApmLogger logger, IExecutionSegment executionSegment, IConfigSnapshot configSnapshot, Transaction enclosingTransaction, string parentId)
+		{
+			//var capturedCulprit = string.IsNullOrEmpty(culprit) ? "PublicAPI-CaptureException" : culprit;
+
+			//var capturedException = new CapturedException {  = message };
+			var error = new Error(logOnError, enclosingTransaction, parentId ?? executionSegment.Id, logger);
+
+			//if (frames != null)
+			//{
+			//	capturedException.StackTrace
+			//		= StacktraceHelper.GenerateApmStackTrace(frames, logger, configurationReader, "failed capturing stacktrace");
+			//}
+
+			payloadSender.QueueError(error); 
+		}
 	}
 }
