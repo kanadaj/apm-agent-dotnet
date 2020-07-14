@@ -223,7 +223,15 @@ namespace SampleAspNetCoreApp.Controllers
 		[ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 		public IActionResult Error()
 		{
-			_logger.LogError("Error captured in /home/error");
+			try
+			{
+				throw new Exception("Bamm!!");
+			}
+			catch (Exception e)
+			{
+				_logger.LogError(e, "Error captured in /home/error");
+			}
+			
 			return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
 		}
 

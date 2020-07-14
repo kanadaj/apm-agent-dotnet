@@ -225,13 +225,10 @@ namespace Elastic.Apm.Model
 
 			var capturedException = new CapturedException { Message = message };
 
-			if (frames != null)
-			{
-				capturedException.StackTrace
-					= StacktraceHelper.GenerateApmStackTrace(frames, logger, configurationReader, "failed capturing stacktrace");
-			}
+			capturedException.StackTrace
+				= StacktraceHelper.GenerateApmStackTrace(frames ?? new StackTrace(true).GetFrames(), logger, configurationReader, "failed capturing stacktrace");
 
-			payloadSender.QueueError(new Error(capturedException, transaction, parentId ?? executionSegment.Id, logger)
+			payloadSender.QueueError(new Error(capturedException, transaction, parentId ?? executionSegment?.Id, logger)
 			{
 				Culprit = capturedCulprit,
 			});
@@ -255,18 +252,39 @@ namespace Elastic.Apm.Model
 			};
 		}
 
-		internal static void CaptureLogError(LogOnError logOnError, IPayloadSender payloadSender, IApmLogger logger, IExecutionSegment executionSegment, IConfigSnapshot configSnapshot, Transaction enclosingTransaction, string parentId)
+		/// <summary>
+		/// Captures an error based on a log
+		/// </summary>
+		/// <param name="logOnError"></param>
+		/// <param name="payloadSender"></param>
+		/// <param name="logger"></param>
+		/// <param name="executionSegment"></param>
+		/// <param name="configSnapshot"></param>
+		/// <param name="enclosingTransaction"></param>
+		/// <param name="parentId"></param>
+		/// <param name="exception"></param>
+		internal static void CaptureLogError(LogOnError logOnError, IPayloadSender payloadSender, IApmLogger logger, IExecutionSegment executionSegment, IConfigSnapshot configSnapshot, Transaction enclosingTransaction, string parentId, Exception exception = null)
 		{
-			//var capturedCulprit = string.IsNullOrEmpty(culprit) ? "PublicAPI-CaptureException" : culprit;
+			var error = new Error(logOnError, enclosingTransaction, parentId ?? executionSegment.Id, logger)
+			{
+				Culprit = $"{logOnError.Level ?? "Error"} log"
+			};
 
-			//var capturedException = new CapturedException {  = message };
-			var error = new Error(logOnError, enclosingTransaction, parentId ?? executionSegment.Id, logger);
+			if (exception != null)
+			{
+				error.Exception = new CapturedException()
+				{
+					Message = exception.Message,
+					Type = exception.GetType().FullName
+				};
 
-			//if (frames != null)
-			//{
-			//	capturedException.StackTrace
-			//		= StacktraceHelper.GenerateApmStackTrace(frames, logger, configurationReader, "failed capturing stacktrace");
-			//}
+				if (exception.StackTrace != null)
+				{
+					error.Exception.StackTrace
+						= StacktraceHelper
+						.GenerateApmStackTrace(exception, logger, $"Exception callstack for {nameof(CaptureLogError)}", configSnapshot);
+				}
+			}
 
 			payloadSender.QueueError(error); 
 		}

@@ -2,7 +2,9 @@
 // Elasticsearch B.V licenses this file to you under the Apache 2.0 License.
 // See the LICENSE file in the project root for more information
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Elastic.Apm.Api;
 using Elastic.Apm.Helpers;
 using Elastic.Apm.Logging;
@@ -24,7 +26,7 @@ namespace Elastic.Apm.Model
 			TransactionId = transaction?.Id;
 			ParentId = parentId;
 
-			if(transaction != null)
+			if (transaction != null)
 				Transaction = new TransactionData(transaction.IsSampled, transaction.Type);
 
 			if (transaction != null && transaction.IsSampled) Context = transaction.Context;
@@ -164,6 +166,7 @@ namespace Elastic.Apm.Model
 		/// </summary>
 		public string Level { get; set; }
 
+		[JsonProperty("stacktrace")]
 		public List<CapturedStackFrame> StackTrace { get; set; }
 
 		public LogOnError(string message)

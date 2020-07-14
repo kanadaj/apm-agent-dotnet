@@ -196,22 +196,9 @@ namespace Elastic.Apm.Api
 		}, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
 		public void CaptureError(string message, string culprit, StackFrame[] frames = null, string parentId = null)
-		{
-			var capturedCulprit = string.IsNullOrEmpty(culprit) ? "PublicAPI-CaptureException" : culprit;
-
-			var capturedException = new CapturedException { Message = message };
-
-			if (frames != null)
-			{
-				capturedException.StackTrace
-					= StacktraceHelper.GenerateApmStackTrace(frames, _logger, _configProvider.CurrentSnapshot, "failed capturing stacktrace");
-			}
-
-			_sender.QueueError(new Error(capturedException, null, null, _logger)
-			{
-				Culprit = capturedCulprit,
-			});
-		}
+		 => ExecutionSegmentCommon.CaptureError(message, culprit, frames, _sender, _logger, null, _configProvider.CurrentSnapshot,
+			 null, parentId);
+			
 
 		public void CaptureException(Exception exception, string culprit = null, bool isHandled = false, string parentId = null)
 		{

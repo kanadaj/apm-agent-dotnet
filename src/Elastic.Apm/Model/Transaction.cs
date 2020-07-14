@@ -388,7 +388,7 @@ namespace Elastic.Apm.Model
 			);
 
 
-		internal void CaptureLogError(LogOnError logOnError, string parentId = null)
+		internal void CaptureLogError(LogOnError logOnError, string parentId = null, Exception exception = null)
 			=> ExecutionSegmentCommon.CaptureLogError(
 				logOnError,
 				_sender,
@@ -396,7 +396,8 @@ namespace Elastic.Apm.Model
 				this,
 				ConfigSnapshot,
 				this,
-				parentId
+				parentId,
+				exception
 			);
 
 		public void CaptureSpan(string name, string type, Action<ISpan> capturedAction, string subType = null, string action = null)
