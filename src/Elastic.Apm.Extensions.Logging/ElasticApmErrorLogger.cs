@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Elastic.Apm.Model;
 using Elastic.Apm.Helpers;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace Elastic.Apm.Extensions.Logging
 {
@@ -24,13 +25,25 @@ namespace Elastic.Apm.Extensions.Logging
 			var logger = Agent.Instance.Logger;
 
 			//TODO: do not capture agent errors as APM error
-
 			var logLine = formatter(state, exception);
+
 			var logOnError = new LogOnError(logLine)
 			{
 				StackTrace = StacktraceHelper.GenerateApmStackTrace(new StackTrace(true).GetFrames(), logger, configReader, nameof(ElasticApmErrorLogger)),
 				Level = logLevel.ToString()
 			};
+
+			if (state is IEnumerable<KeyValuePair<string, object>> stateValues)
+			{
+				foreach (var item in stateValues)
+				{
+					if (item.Key == "{OriginalFormat}")
+					{
+						logOnError.ParamMessage = item.Value.ToString();
+					}
+				}
+			}
+
 			if (Agent.Tracer.CurrentSpan != null)
 			{
 				(Agent.Tracer.CurrentSpan as Span)?.CaptureLogError(logOnError, exception: exception);
