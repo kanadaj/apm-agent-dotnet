@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Net.Http.Headers;
 
 namespace WebApiSample
 {
@@ -41,6 +42,11 @@ namespace WebApiSample
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 #endif
 		{
+			app.UseCors(policy =>
+				policy.WithOrigins("https://localhost:44314", "http://localhost:44314")
+					.AllowAnyMethod()
+					.AllowAnyHeader()
+					.AllowCredentials());
 			app.UseCors("MyAllowSpecificOrigins");
 			app.UseAllElasticApm(_configuration);
 			ConfigureAllExceptAgent(app);
