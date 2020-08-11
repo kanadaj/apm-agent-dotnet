@@ -198,11 +198,11 @@
   </ItemGroup>
   <ItemGroup Condition="'$(OS)' == 'WINDOWS_NT'">
     <ProjectReference Include="..\..\src\Elastic.Apm.AspNetFullFramework\Elastic.Apm.AspNetFullFramework.csproj">
-      <Project>{d6ffddab-9d76-442f-8f1d-bd6f553f92fa}</Project>
+      <Project>{01CC1059-D07F-49BA-B0CF-8BB7FD554B19}</Project>
       <Name>Elastic.Apm.AspNetFullFramework</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\src\Elastic.Apm.EntityFramework6\Elastic.Apm.EntityFramework6.csproj">
-      <Project>{12ffcff6-858c-4e6e-935c-e304712deca4}</Project>
+      <Project>{A9B6B31C-B852-4711-B90A-40E02DA85238}</Project>
       <Name>Elastic.Apm.EntityFramework6</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\src\Elastic.Apm\Elastic.Apm.csproj">

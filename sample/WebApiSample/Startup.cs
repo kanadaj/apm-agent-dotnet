@@ -43,7 +43,7 @@ namespace WebApiSample
 #endif
 		{
 			app.UseCors(policy =>
-				policy.WithOrigins("https://localhost:44314", "http://localhost:44314")
+				policy.WithOrigins("https://localhost:44314", "http://localhost:44314", "http://localhost:5000",  "http://localhost:5005")
 					.AllowAnyMethod()
 					.AllowAnyHeader()
 					.AllowCredentials());

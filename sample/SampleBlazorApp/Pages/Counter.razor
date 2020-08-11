@@ -33,13 +33,20 @@
 	{
 		await Tracer.CaptureTransaction("IncrementCount", "Component", async transaction =>
 		{
-			await transaction.CaptureSpan("Call backend", ApiConstants.TypeExternal, async () =>
+			await transaction.CaptureSpan("Call backend", ApiConstants.TypeExternal, async (transaction) =>
 			{
-				var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5050/api/Values");
-				request.Headers.Add("traceparent", transaction?.OutgoingDistributedTracingData.SerializeToString());
-				var res = await Http.SendAsync(request);
+				await transaction.CaptureSpan("GET /api/values", ApiConstants.TypeExternal,  async span =>
+				{
+					var uri = "http://localhost:5050/api/Values";
+					span.Context.Http = new Http { Url = uri, Method = "GET"};
+					
+					var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5050/api/Values");
+					request.Headers.Add("traceparent", transaction?.OutgoingDistributedTracingData.SerializeToString());
+					var res = await Http.SendAsync(request);
 
-				var stringRes = await res.Content.ReadAsStringAsync();
+					span.Context.Http.StatusCode = (int)res.StatusCode;
+					var stringRes = await res.Content.ReadAsStringAsync();
+				});
 			});
 
 

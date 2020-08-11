@@ -6,7 +6,6 @@
     <FileVersion>1.0.1</FileVersion>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\build\elasticapm.snk</AssemblyOriginatorKeyFile>
-    <DelaySign>false</DelaySign>
     <PackageVersion>1.0.1-beta1</PackageVersion>
     <Authors>Elastic and contributors</Authors>
     <PackageId>Elastic.Apm.Elasticsearch</PackageId>

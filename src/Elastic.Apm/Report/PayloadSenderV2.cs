@@ -33,7 +33,7 @@ namespace Elastic.Apm.Report
 			HttpMessageHandler httpMessageHandler = null, string dbgName = null
 		)
 			: base(logger, config, service, system, httpMessageHandler, dbgName) =>
-			IntakeEventsAbsoluteUrl =  BackendCommUtils.ApmServerEndpoints.BuildIntakeV2EventsAbsoluteUrl(config.ServerUrls.First())
+			IntakeEventsAbsoluteUrl = BackendCommUtils.ApmServerEndpoints.BuildIntakeV2EventsAbsoluteUrl(config.ServerUrls.First());
 	}
 
 	internal class Metadata
