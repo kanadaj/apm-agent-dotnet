@@ -20,6 +20,7 @@ namespace Elastic.Apm.Model
 {
 	internal class Span : ISpan
 	{
+		private readonly IApmServerInfo _apmServerInfo;
 		private readonly Lazy<SpanContext> _context = new Lazy<SpanContext>();
 		private readonly ICurrentExecutionSegmentsContainer _currentExecutionSegmentsContainer;
 		private readonly Transaction _enclosingTransaction;
@@ -38,12 +39,6 @@ namespace Elastic.Apm.Model
 		/// capture the stacktrace is .Start
 		/// </summary>
 		private readonly StackFrame[] _stackFrames;
-
-		/// <summary>
-		/// Captures the sample rate of the agent when this span was created.
-		/// </summary>
-		[JsonProperty("sample_rate")]
-		internal double SampleRate { get; }
 
 		// This constructor is meant for deserialization
 		[JsonConstructor]
@@ -127,7 +122,6 @@ namespace Elastic.Apm.Model
 		}
 
 		private bool _isEnded;
-		private readonly IApmServerInfo _apmServerInfo;
 
 		[MaxLength]
 		public string Action { get; set; }
@@ -186,6 +180,12 @@ namespace Elastic.Apm.Model
 		[JsonProperty("parent_id")]
 		public string ParentId { get; set; }
 
+		/// <summary>
+		/// Captures the sample rate of the agent when this span was created.
+		/// </summary>
+		[JsonProperty("sample_rate")]
+		internal double SampleRate { get; }
+
 		[JsonIgnore]
 		internal bool ShouldBeSentToApmServer => IsSampled && !_isDropped;
 
@@ -231,6 +231,10 @@ namespace Elastic.Apm.Model
 			{ nameof(Outcome), Outcome },
 			{ nameof(IsSampled), IsSampled }
 		}.ToString();
+
+		public Label GetLabel(string key) => Context.InternalLabels.Value.InnerDictionary.ContainsKey(key)
+			? Context.InternalLabels.Value.InnerDictionary[key]
+			: null;
 
 		public ISpan StartSpan(string name, string type, string subType = null, string action = null)
 		{
